@@ -137,16 +137,14 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     loop { unsafe { core::arch::asm!("hlt") }; }
 }
 
-/// Second kernel task: prints three ticks interleaved with task A, then loops.
+/// Second kernel task: prints three ticks interleaved with task A, then exits.
 fn task_b() -> ! {
     for i in 0..3_u32 {
         kprintln!("[task B] tick {}, yielding...", i);
         task::yield_task();
     }
-    // No task_exit yet (Step 10); yield forever so task A can finish cleanly.
-    loop {
-        task::yield_task();
-    }
+    kprintln!("[task B] done, exiting");
+    task::task_exit();
 }
 
 #[panic_handler]

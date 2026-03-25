@@ -78,6 +78,10 @@ pub type TaskId = u64;
 pub enum TaskState {
     Running,
     Ready,
+    /// Waiting on an event (e.g. IPC). Will not be scheduled until wake_task is called.
+    Blocked,
+    /// Exited. Will be freed on the next yield_task sweep.
+    Dead,
 }
 
 /// Per-task saved scheduler state.  Only `rsp` is stored; all other
@@ -144,7 +148,7 @@ pub fn init() {
 
 /// Spawn a new kernel-mode task beginning execution at `entry`.
 ///
-/// `entry` must never return (infinite loop or eventual `task_exit` in Step 10).
+/// `entry` must never return; call `task_exit()` when done.
 pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
     // Allocate a zeroed kernel stack.  The heap allocator guarantees 16-byte
     // alignment, so stack_top = base + KERNEL_STACK_SIZE is also aligned.
@@ -181,11 +185,33 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
     id
 }
 
+// ── Internal helpers ──────────────────────────────────────────────────────────
+
+/// Remove all Dead tasks from the queue, adjusting `current` accordingly.
+/// Must be called when the current task is Running (never Dead).
+fn sweep_dead(sched: &mut Scheduler) {
+    let mut i = 0;
+    while i < sched.tasks.len() {
+        if sched.tasks[i].state == TaskState::Dead {
+            sched.tasks.remove(i);
+            if i < sched.current {
+                sched.current -= 1;
+            }
+            // don't advance i — the element at i is now the next task
+        } else {
+            i += 1;
+        }
+    }
+}
+
+// ── Public API (continued) ────────────────────────────────────────────────────
+
 /// Cooperative yield: save the current task and switch to the next ready task
 /// in round-robin order.  Returns when this task is switched back to.
-/// No-op if there are no other ready tasks.
+/// No-op if there are no other ready tasks.  Frees any Dead tasks first.
 pub fn yield_task() {
     let sched = unsafe { get_sched() };
+    sweep_dead(sched);
 
     let n       = sched.tasks.len();
     let current = sched.current;
@@ -211,4 +237,59 @@ pub fn yield_task() {
 
     // After this call returns we are back in `current`'s context.
     unsafe { switch_context(from_ctx, to_ctx); }
+}
+
+/// Terminate the current task.  Marks it Dead, switches to the next ready task,
+/// and never returns.  If no other task is ready, halts the CPU.
+pub fn task_exit() -> ! {
+    let sched = unsafe { get_sched() };
+    let current = sched.current;
+
+    sched.tasks[current].state = TaskState::Dead;
+
+    // Find the next Ready task.
+    let n = sched.tasks.len();
+    let mut next = (current + 1) % n;
+    loop {
+        if sched.tasks[next].state == TaskState::Ready { break; }
+        next = (next + 1) % n;
+        if next == current {
+            // No other ready tasks — halt.
+            loop { unsafe { core::arch::asm!("hlt") }; }
+        }
+    }
+
+    // from_ctx is written by switch_context but never read again — the Dead
+    // task's stack stays valid until sweep_dead drops it on the next yield.
+    let from_ctx: *mut   TaskContext = &mut sched.tasks[current].context;
+    let to_ctx:   *const TaskContext = &    sched.tasks[next].context;
+
+    sched.tasks[next].state = TaskState::Running;
+    sched.current           = next;
+
+    unsafe { switch_context(from_ctx, to_ctx); }
+
+    unreachable!("task_exit: returned from switch_context")
+}
+
+/// Block the task with `id`, removing it from scheduling until `wake_task` is called.
+/// No-op if the task is not in the Ready state.
+pub fn block_task(id: TaskId) {
+    let sched = unsafe { get_sched() };
+    if let Some(t) = sched.tasks.iter_mut().find(|t| t.id == id) {
+        if t.state == TaskState::Ready {
+            t.state = TaskState::Blocked;
+        }
+    }
+}
+
+/// Wake a blocked task, making it eligible to be scheduled again.
+/// No-op if the task is not in the Blocked state.
+pub fn wake_task(id: TaskId) {
+    let sched = unsafe { get_sched() };
+    if let Some(t) = sched.tasks.iter_mut().find(|t| t.id == id) {
+        if t.state == TaskState::Blocked {
+            t.state = TaskState::Ready;
+        }
+    }
 }

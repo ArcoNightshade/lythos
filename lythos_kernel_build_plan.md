@@ -1,7 +1,16 @@
 # Lythos Kernel — 14-Step Build Plan
+
 **Target**: x86_64 (primary), aarch64 (secondary)
 **Language**: Rust
-**Revision**: 1.0
+**Revision**: 2.0
+
+---
+
+## Scope
+
+Lythos is a **microkernel**. This repo contains only kernel code. All drivers, daemons, and userspace programs (`lythd`, `lythdist`, `lythmsg`, etc.) live in the **RaptorOS** repo and run in ring 3.
+
+The kernel exposes exactly four syscall categories: memory management, IPC primitives, capability operations, and scheduling. Nothing else belongs in this repo.
 
 ---
 
@@ -10,6 +19,7 @@
 **Goal**: Produce a bootable binary that transfers control to Rust code.
 
 **Implementation**:
+
 - Create a `no_std`, `no_main` Rust workspace with a custom target spec: `x86_64-lythos.json`.
 - Target fields: `"os": "none"`, `"panic-strategy": "abort"`, `"disable-redzone": true`, `"features": "-mmx,-sse,+soft-float"` (SSE must be disabled before stack setup).
 - Write a 16→32→64-bit assembly stub (`boot.asm`) using NASM or inline `global_asm!`. The stub sets up a minimal GDT, switches to 64-bit long mode, sets up a temporary stack pointer, then calls `kmain()`.
@@ -26,6 +36,7 @@
 **Goal**: Install a valid Global Descriptor Table, Interrupt Descriptor Table, and handle CPU exceptions without triple-faulting.
 
 **Implementation**:
+
 - Define GDT in Rust as a `static` array of `u64` descriptors. Entries needed: null, kernel code (ring 0), kernel data (ring 0). Load with `lgdt`.
 - Define IDT as a `static` array of 256 `IdtEntry` structs. Each entry holds a handler pointer, selector, and flags.
 - Write ISR stubs in `global_asm!` for vectors 0–31 (CPU exceptions). Each stub pushes a fake error code if the CPU doesn't, pushes the vector number, then jumps to a common `exception_handler` written in Rust.
@@ -43,6 +54,7 @@
 **Goal**: Establish a serial port logger usable before any memory allocator exists.
 
 **Implementation**:
+
 - Implement a `SerialPort` struct wrapping x86 I/O port `0x3F8` (COM1). Methods: `init()`, `write_byte(u8)`, `write_str(&str)`.
 - Use `x86_64::instructions::port::Port` or raw `in`/`out` instructions via `global_asm!`.
 - Implement `core::fmt::Write` for `SerialPort`. This enables `write!` macros.
@@ -58,6 +70,7 @@
 **Goal**: Track all usable physical memory as page frames; support alloc and free of 4KB pages.
 
 **Implementation**:
+
 - Parse the Multiboot2 memory map tag at boot to enumerate usable RAM regions.
 - Implement a bitmap allocator: one bit per 4KB frame. Store the bitmap at a fixed physical address (`KERNEL_END` aligned up to 4KB). Mark kernel + bitmap region as used.
 - API: `fn alloc_frame() -> Option<PhysAddr>`, `fn free_frame(PhysAddr)`.
@@ -74,6 +87,7 @@
 **Goal**: Install 4-level paging (PML4→PDPT→PD→PT), map the kernel, and support dynamic page mappings.
 
 **Implementation**:
+
 - Define `PageTable`, `PageTableEntry` structs. `PageTableEntry` wraps `u64` with bit-field accessors: present, writable, user, NX, address.
 - Allocate page tables from the physical allocator (Step 4). Root PML4 lives at a known physical address.
 - Identity-map the kernel region (`0x100000`–`KERNEL_END`) + the serial MMIO range.
@@ -87,11 +101,12 @@
 
 ---
 
-## Step 6 — Heap allocator (kernel slab/linked-list)
+## Step 6 — Heap allocator (kernel slab/linked-list) ✅
 
 **Goal**: Enable `alloc::` crate usage inside the kernel — `Box`, `Vec`, `Arc`, etc.
 
 **Implementation**:
+
 - Carve a kernel heap region from virtual memory (e.g. `0xFFFF_C000_0000_0000`, 64MB initially). Back it with physical frames on demand via the page fault handler or by pre-mapping a fixed range.
 - Implement a linked-list allocator as a `GlobalAlloc` impl. Each free block stores a header with size and a pointer to the next free block. `alloc` walks the list for a fit; `dealloc` reinserts and optionally coalesces.
 - Register via `#[global_allocator]`.
@@ -102,16 +117,28 @@
 
 ---
 
-## Step 7 — Scheduling: processes and context switching
+## Step 7 — Scheduling: kernel tasks and context switching (in progress)
 
-**Goal**: Define a process/task abstraction and implement cooperative then preemptive context switching.
+**Goal**: Define a task abstraction, implement cooperative context switching, add task exit and blocking, then wire preemptive scheduling to the APIC timer (Step 8).
+
+**Status**:
+
+- ✅ `Task` struct, `TaskContext`, `switch_context` assembly
+- ✅ Round-robin cooperative scheduler (`yield_task`)
+- ✅ `spawn_kernel_task`
+- ⬜ `task_exit` — mark task dead, remove from queue, schedule next
+- ⬜ `TaskState::Blocked` + `block_task` / `wake_task` — needed for IPC parking in Step 11
+- ⬜ Preemptive scheduling — wired from APIC timer ISR (Step 8)
 
 **Implementation**:
-- Define `Task` struct: `id: TaskId`, `state: TaskState` (Running/Ready/Blocked), `kernel_stack: VirtAddr`, `page_table: PhysAddr`, `context: TaskContext`.
-- `TaskContext` holds callee-saved registers: `rsp`, `rbp`, `rbx`, `r12–r15`, `rflags`, `rip` (x86_64).
-- Implement `fn switch_context(from: &mut TaskContext, to: &TaskContext)` in `global_asm!`. It pushes callee-saved regs onto the current stack, saves `rsp`, loads the target `rsp`, pops callee-saved regs, and `ret`s into the new task.
-- Implement a simple round-robin ready queue (`VecDeque<Arc<Task>>`).
-- Cooperative first: `yield()` syscall calls `schedule()` directly.
+
+- Define `Task` struct: `id: TaskId`, `state: TaskState` (Running/Ready/Blocked/Dead), `kernel_stack: VirtAddr`, `page_table: PhysAddr`, `context: TaskContext`.
+- `TaskContext` holds callee-saved registers: `rsp`, `rbp`, `rbx`, `r12–r15` (x86_64).
+- Implement `fn switch_context(from: &mut TaskContext, to: &TaskContext)` in `global_asm!`.
+- Implement a simple round-robin ready queue.
+- `task_exit()`: mark current task `Dead`, drop it from the queue, schedule next. Must never return.
+- `block_task(id)` / `wake_task(id)`: transition a task between `Blocked` and `Ready`. Used by IPC `park`/`unpark` in Step 11.
+- Cooperative first: `yield_task()` calls `schedule()` directly.
 - Preemptive: wire the APIC timer (Step 8) to call `schedule()` from the timer ISR.
 - Kernel tasks only at this stage — user-mode (ring 3) added in Step 10.
 
@@ -124,23 +151,27 @@
 **Goal**: Replace PIC with APIC, configure a preemption timer, and support hardware IRQ routing.
 
 **Implementation**:
+
 - Detect and disable the legacy PIC (mask all IRQs, send EOI sequence).
 - Map the Local APIC MMIO registers. Base address from `IA32_APIC_BASE` MSR. Map into kernel virtual space.
 - Enable the APIC (`APIC_SVR` register, bit 8).
 - Configure the APIC timer: divide by 16, one-shot or periodic mode. Calibrate against the PIT or HPET to determine ticks-per-ms. Set the initial count for a 1ms or 10ms tick.
 - Install a timer ISR at IDT vector 32. The ISR: increments a global tick counter, sends EOI to APIC, calls `schedule()`.
 - Install a spurious IRQ handler at IDT vector 255.
-- For I/O APIC: parse ACPI MADT table to find I/O APIC base, configure redirection table entries for keyboard (IRQ1) and any other needed devices.
+- For I/O APIC: parse ACPI MADT table to find I/O APIC base, configure redirection table entries for IRQ routing. Device drivers (keyboard, disk, etc.) live in RaptorOS userspace — the kernel only routes IRQs to the appropriate capability-holding process.
 
 **aarch64 note**: Use the ARM Generic Timer (`CNTP_TVAL_EL0`, `CNTP_CTL_EL0`) and GICv2/GICv3 (distributor + CPU interface MMIO). QEMU virt exposes GICv2 at `0x08000000`.
 
 ---
 
-## Step 9 — Capability system (lythdist foundation)
+## Step 9 — Capability system
 
 **Goal**: Implement the core capability model: unforgeable tokens that grant access to kernel objects and IPC memory regions.
 
+**Note**: This is the kernel's side of what `lythdist` (a RaptorOS daemon) sits on top of. The kernel provides the primitive operations; `lythdist` is the userspace policy layer that distributes them at boot.
+
 **Implementation**:
+
 - Define `Capability` as a struct: `id: CapId` (monotonically incrementing `u64`), `kind: CapKind` (Memory, IPC, Device, etc.), `rights: CapRights` (Read, Write, Grant, Revoke as bitflags), `object: KernelObjectRef`.
 - `KernelObjectRef` is a typed reference into a kernel object table (arena-allocated, indexed by a generation-tagged handle to prevent use-after-free).
 - Capability tokens are never exposed directly to userspace — processes hold opaque `CapHandle` integers. The kernel maintains a per-process `CapabilityTable` mapping `CapHandle → Capability`.
@@ -152,96 +183,106 @@
 
 ## Step 10 — Userspace: ring 3 tasks and syscall interface
 
-**Goal**: Run unprivileged code, establish the syscall boundary, and implement the minimal syscall surface from the design doc.
+**Goal**: Run unprivileged code, establish the syscall boundary, and implement the minimal syscall surface.
 
 **Implementation**:
+
+- Add user-mode GDT entries (ring 3 code + data) and a TSS with a kernel stack pointer (RSP0) for the privilege switch on syscall entry.
 - Set up a user-mode page table layout: kernel mapped at high addresses (not accessible from ring 3 via SMEP/SMAP), user stack and code mapped at low addresses.
 - Implement `enter_userspace(entry: VirtAddr, stack: VirtAddr)` using `iretq` (or `sysretq`) to drop to ring 3.
-- Install a `syscall`/`sysret` handler via `IA32_LSTAR` MSR. The entry stub swaps to the kernel stack (per-CPU `IA32_KERNEL_GS_BASE` trick or a TSS-based RSP0), saves user registers, calls a Rust `syscall_dispatch(nr, args)`.
-- Implement the four syscall categories from the spec:
+- Install a `syscall`/`sysret` handler via `IA32_LSTAR` MSR. The entry stub swaps to the kernel stack via TSS RSP0, saves user registers, calls a Rust `syscall_dispatch(nr, args)`.
+- Implement the four syscall categories:
   - **Memory**: `mmap(len, flags, cap_handle)` — validates capability, maps physical frames into caller's address space.
-  - **IPC**: `ipc_send(endpoint_cap, msg_ptr, len)`, `ipc_recv(endpoint_cap, buf_ptr, len)` — backed by shared memory regions (Step 11). Blocks the caller if the endpoint has no pending message.
+  - **IPC**: `ipc_send(endpoint_cap, msg_ptr, len)`, `ipc_recv(endpoint_cap, buf_ptr, len)` — backed by shared memory regions (Step 11). Parks the caller via `block_task` if the endpoint buffer is full/empty.
   - **Capability ops**: `cap_grant(handle, target_pid, rights)`, `cap_revoke(handle)`.
-  - **Scheduling**: `yield()`, `task_exit(code)`.
+  - **Scheduling**: `yield()`, `task_exit(code)` — `task_exit` calls the kernel-level exit added in Step 7.
 - Return values: `isize` in `rax`. Errors are negative errno-style codes.
 
-**SMEP/SMAP**: Set CR4 bits at boot to prevent kernel executing/accessing user pages accidentally.
+**SMEP/SMAP**: Set CR4 bits at boot to prevent the kernel executing or reading/writing user pages accidentally.
 
 ---
 
-## Step 11 — IPC: shared memory regions and lythmsg substrate
+## Step 11 — IPC: shared memory regions
 
-**Goal**: Implement the shared-memory async IPC primitive that `lythmsg` will run on.
+**Goal**: Implement the shared-memory async IPC primitive that `lythmsg` (RaptorOS) will run on.
 
 **Implementation**:
+
 - An IPC endpoint is a kernel object: a circular ring buffer in a shared physical page, plus a wait queue.
-- `lythdist` creates endpoints at boot: it allocates a physical page, maps it into both sender and receiver address spaces at their respective virtual addresses (using capability-gated `mmap`), and hands each party a `CapHandle` for the endpoint.
+- `lythdist` (RaptorOS) creates endpoints at boot: it allocates a physical page via `mmap`, maps it into both sender and receiver address spaces, and hands each party a `CapHandle` for the endpoint. The kernel provides the mapping primitive; the policy is `lythdist`'s job.
 - The ring buffer layout (in the shared page): `head: AtomicU32`, `tail: AtomicU32`, `data: [u8; N]`. Sender writes to `tail`; receiver reads from `head`. No kernel involvement for the data path — both sides access the shared page directly.
-- The kernel is involved only for blocking/waking: `ipc_send` does a fast-path check (is there space?) and falls through to a `park()` if the buffer is full. `ipc_recv` similarly parks if empty. The kernel wakes the blocked task when the condition changes.
-- Message framing: fixed 64-byte message slots (or variable with a 4-byte length prefix). Document the format in a shared header.
-- `lythmsg` is a userspace daemon built on top of this — it uses the IPC primitive to implement service discovery and named channels.
+- The kernel is involved only for blocking/waking: `ipc_send` does a fast-path check (is there space?) and calls `block_task` if the buffer is full. `ipc_recv` similarly blocks if empty. The kernel wakes the blocked task via `wake_task` when the condition changes.
+- Message framing: fixed 64-byte message slots (or variable with a 4-byte length prefix). Document the format in a shared header consumed by both lythos and RaptorOS.
 
 ---
 
-## Step 12 — lythd: PID 1, service supervisor, and stability timer
+## Step 12 — ELF loader and exec
 
-**Goal**: Implement `lythd` as a userspace process (PID 1 equivalent) with service lifecycle management and the 30-second rollback stability timer.
-
-**Implementation**:
-- `lythd` is the first userspace process spawned by the kernel after ring 3 is available. The kernel exec's a statically-linked ELF from a known physical address or embedded blob.
-- `lythd` receives a capability to a "boot info" IPC endpoint from which it reads the hardware topology summary produced by `lythdist` (or it calls `lythdist` directly via IPC).
-- Service definitions are TOML files (embedded in the initrd for now). `lythd` parses them, resolves the `deps` DAG, and spawns services in topological order via a `spawn(elf_blob, caps[])` syscall.
-- Supervision loop: `lythd` holds a `death_channel` capability for each child. When a child exits, the kernel sends a message on that channel. `lythd` receives it and either restarts the service or, if it is in the `critical` set and the stability timer is still active, triggers a rollback.
-- Stability timer: `lythd` reads a `rollback_pending` flag from a known location (a dedicated page, set by `rpkg` on the previous boot). If set, `lythd` starts a 30-second countdown using the kernel timer API. On expiry with no critical failure: clear the flag. On critical failure before expiry: invoke the rollback syscall.
-- Rollback syscall: a privileged syscall (only `lythd`'s capability set includes it) that instructs the kernel to perform the Btrfs subvolume revert and reboot. Implementation at the kernel level is a kexec into a minimal "revert + reboot" stub, or a direct ACPI reset after the Btrfs operation.
-
----
-
-## Step 13 — ELF loader and exec
-
-**Goal**: Load and execute ELF64 binaries from the store into isolated address spaces.
+**Goal**: Load and execute ELF64 binaries into isolated address spaces.
 
 **Implementation**:
+
 - Implement an ELF64 parser: validate magic, check `ET_EXEC` or `ET_DYN`, iterate `PT_LOAD` segments.
 - For each `PT_LOAD` segment: allocate physical frames, map into a new page table at `p_vaddr`, copy `p_filesz` bytes, zero-fill `p_memsz - p_filesz`.
 - Allocate a user stack (default 8MB, guard page at the bottom — mapped present but with no permissions to catch stack overflow).
 - Set up the initial stack frame: `argc`, `argv`, `envp`, and an auxiliary vector (`AT_ENTRY`, `AT_PHDR`, `AT_PHNUM`, `AT_PAGESZ`).
 - `exec(elf_data: &[u8], caps: &[CapHandle]) -> TaskId`: creates a new `Task`, loads the ELF, assigns the provided capabilities to the new task's capability table, enqueues the task in the scheduler.
 - Static executables only for now (musl statically linked). Dynamic linking deferred.
-- Test: compile a minimal "hello world" Rust binary targeting `x86_64-unknown-linux-musl` with a raw `write` syscall (no `std`), exec it from `lythd`, confirm serial output.
+- Test: compile a minimal Rust binary targeting `x86_64-unknown-linux-musl` with a raw `write` syscall (no `std`), exec it from the kernel, confirm serial output.
+
+---
+
+## Step 13 — First userspace process bootstrap
+
+**Goal**: Exec the first userspace process (`lythd`) from the kernel and hand it its initial capabilities.
+
+**Note**: `lythd`, `lythdist`, and `lythmsg` are **RaptorOS** processes. The kernel's job here is to load and launch `lythd` from an embedded blob or initrd and grant it the root capability set. Everything after that is `lythd`'s responsibility.
+
+**Implementation**:
+
+- At the end of `kmain`, locate the `lythd` ELF binary (embedded in the kernel image or at a known physical address from the bootloader).
+- Allocate the initial capability set: a root memory capability covering all free physical frames, and a boot-info IPC endpoint capability containing the hardware topology (parsed from ACPI/CPUID).
+- Call `exec(lythd_elf, &[mem_cap, boot_info_cap])` — this is the only process the kernel spawns directly. All subsequent processes are spawned by `lythd` via the `exec` syscall.
+- Define a privileged `rollback` syscall gated by a dedicated capability type. Only the process that holds a `CapKind::Rollback` capability (granted exclusively to `lythd` at boot) can invoke it.
+- Enter the scheduler. The kernel's boot work is done; `lythd` takes over.
 
 ---
 
 ## Step 14 — Integration: boot sequence and smoke test
 
-**Goal**: Wire all components into the complete boot sequence defined in the design doc, and run a full smoke test.
+**Goal**: Wire all kernel components together and verify the full boot sequence up to a live userspace.
+
+**Note**: The full boot sequence (lythd → lythdist → lythmsg → services) is defined in the RaptorOS design document and implemented there. The kernel smoke test ends at "lythd is running and can make syscalls."
 
 **Implementation**:
-- **Kernel side**: on entry, run Steps 1–6 in order (paging, heap, serial). Spawn `lythdist` as the first userspace task (Step 13 ELF loader). Pass it a capability to the hardware info IPC endpoint.
-- **lythdist**: reads hardware topology (ACPI, CPUID), allocates capability tokens for memory regions and IPC endpoints, grants them to `lythd` via `cap_grant`.
-- **lythd** (PID 1): receives capabilities, spawns `lythmsg` with its IPC memory region capability, then reads service definitions and spawns non-critical services in dependency order.
-- **Stability timer**: `lythd` checks for the rollback flag at startup. Arm the timer if set.
-- **Mount sequence**: at this stage "mounting" means the kernel maps the Btrfs subvolume regions into the appropriate virtual address ranges (or notifies a VFS daemon). `/lth/system` is immutable (read-only mapping), `/cfg` and `/user` are writable.
-- **Smoke test checklist**:
-  - [ ] Kernel boots to `lythd` without triple fault.
-  - [ ] `lythdist` allocates and grants capabilities; `lythd` receives them.
-  - [ ] `lythmsg` initializes; IPC send/recv between two test tasks succeeds.
-  - [ ] A non-critical service (e.g. a stub `lynet`) is spawned and supervised; killing it triggers a restart.
-  - [ ] Deliberately crash a critical daemon during the stability window; confirm rollback triggers.
-  - [ ] Stability timer expires cleanly on a normal boot; rollback flag is cleared.
-  - [ ] `rpbreak` (if implemented) can manually kill services and observe `lythd` supervision responses.
-  - [ ] Run under QEMU with `-d int,cpu_reset` to confirm no unexpected exceptions.
+
+- Verify the kernel boots cleanly through all 13 prior steps with no triple fault.
+- Confirm `lythd` receives its initial capabilities and can make all four syscall categories.
+- Confirm IPC send/recv between two test userspace tasks succeeds end-to-end.
+- Confirm `task_exit` cleans up correctly and the scheduler continues with remaining tasks.
+- Confirm a capability-less process cannot access a capability-gated resource (`ENOCAP` returned).
+- Run under QEMU with `-d int,cpu_reset` to confirm no unexpected exceptions at any stage.
+
+**Smoke test checklist**:
+
+- [ ] Kernel boots through all steps without triple fault.
+- [ ] `lythd` ELF is loaded and enters ring 3 successfully.
+- [ ] `lythd` receives and can exercise its initial capabilities.
+- [ ] IPC shared-memory send/recv works between two userspace tasks.
+- [ ] `task_exit` removes a task cleanly; scheduler continues.
+- [ ] Unauthorized capability access returns `ENOCAP`.
+- [ ] QEMU `-d int,cpu_reset` shows no unexpected faults.
 
 ---
 
 ## Architecture notes
 
-| Concern | x86_64 | aarch64 |
-|---|---|---|
-| Boot stub | NASM, Multiboot2 / UEFI | `bl kmain` from reset vector |
-| Exception table | IDT, `lidt` | `VBAR_EL1` vector table |
-| Syscall entry | `syscall`/`sysret`, `IA32_LSTAR` | `svc #0`, `ELR_EL1`/`SPSR_EL1` |
-| Timer | APIC timer, calibrated via PIT | ARM Generic Timer |
-| IRQ controller | I/O APIC, ACPI MADT | GICv2/GICv3 |
-| Page tables | 4-level, `CR3` | 4-level, `TTBR0/1_EL1` |
-| Context switch | `rsp`/callee-saved regs | `sp`/`x19–x28`, `lr` |
+| Concern         | x86_64                           | aarch64                        |
+| --------------- | -------------------------------- | ------------------------------ |
+| Boot stub       | NASM, Multiboot2 / UEFI          | `bl kmain` from reset vector   |
+| Exception table | IDT, `lidt`                      | `VBAR_EL1` vector table        |
+| Syscall entry   | `syscall`/`sysret`, `IA32_LSTAR` | `svc #0`, `ELR_EL1`/`SPSR_EL1` |
+| Timer           | APIC timer, calibrated via PIT   | ARM Generic Timer              |
+| IRQ controller  | I/O APIC, ACPI MADT              | GICv2/GICv3                    |
+| Page tables     | 4-level, `CR3`                   | 4-level, `TTBR0/1_EL1`         |
+| Context switch  | `rsp`/callee-saved regs          | `sp`/`x19–x28`, `lr`           |
