@@ -61,6 +61,14 @@ impl PageFlags {
     pub const KERNEL_RO: Self = Self(
         PageFlags::PRESENT.0 | PageFlags::NX.0
     );
+    /// User read-execute (code pages; not executable from kernel mode with SMEP).
+    pub const USER_RX: Self = Self(
+        PageFlags::PRESENT.0 | PageFlags::USER.0
+    );
+    /// User read-write, no-execute (stack and data pages).
+    pub const USER_RW: Self = Self(
+        PageFlags::PRESENT.0 | PageFlags::WRITABLE.0 | PageFlags::USER.0 | PageFlags::NX.0
+    );
 }
 
 impl core::ops::BitOr for PageFlags {

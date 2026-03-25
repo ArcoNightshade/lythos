@@ -8,13 +8,17 @@ use alloc::vec::Vec;
 use core::arch::global_asm;
 use core::panic::PanicInfo;
 
+pub mod apic;
+pub mod cap;
 pub mod heap;
 mod exceptions;
 mod gdt;
 mod idt;
 pub mod pmm;
 pub mod serial;
+pub mod syscall;
 pub mod task;
+pub mod tss;
 pub mod vmm;
 
 // Boot stub: Multiboot headers + 32-bit → 64-bit long-mode transition.
@@ -132,9 +136,145 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     }
     kprintln!("[sched] smoke-test passed");
 
+    // ── APIC + preemptive timer ───────────────────────────────────────────
+    apic::init();
+    kprintln!("[apic] timer active — preemptive scheduling enabled");
+
+    // Smoke-test: sleep ~50 ms by polling the tick counter.
+    let t0 = apic::ticks();
+    while apic::ticks() < t0 + 50 {
+        unsafe { core::arch::asm!("hlt") };
+    }
+    kprintln!("[apic] smoke-test passed — {} ticks elapsed", apic::ticks() - t0);
+
+    // ── Syscall interface ─────────────────────────────────────────────────
+    syscall::init();
+    kprintln!("[syscall] initialized — SMEP on, LSTAR/STAR/FMASK configured");
+
+    // ── Capability system ─────────────────────────────────────────────────
+    {
+        let mut alice = cap::CapabilityTable::new();
+        let mut bob   = cap::CapabilityTable::new();
+
+        // Create a physical memory object and give alice a root cap (all rights).
+        let obj = cap::create_object(cap::KernelObject::Memory {
+            base_pa: 0x1000, frame_count: 1,
+        }).expect("cap smoke-test: create_object");
+
+        let h_alice = cap::create_root_cap(
+            &mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj,
+        );
+
+        // Alice grants Bob a read-only derived capability.
+        let h_bob = cap::cap_grant(
+            &mut alice, h_alice,
+            99, // placeholder task id for bob
+            &mut bob,
+            cap::CapRights::READ,
+        ).expect("cap smoke-test: cap_grant");
+
+        // Bob's cap carries only READ — WRITE/GRANT/REVOKE were masked off.
+        assert_eq!(
+            bob.get(h_bob).expect("cap smoke-test: get bob cap").rights,
+            cap::CapRights::READ,
+            "cap smoke-test: rights mismatch",
+        );
+
+        // Bob cannot re-grant (no Grant right).
+        assert!(
+            cap::cap_grant(&mut bob, h_bob, 0, &mut alice, cap::CapRights::READ).is_err(),
+            "cap smoke-test: Bob should not be able to grant",
+        );
+
+        // Alice revokes her root cap.
+        cap::cap_revoke(&mut alice, h_alice).expect("cap smoke-test: revoke");
+
+        // Alice's handle is now invalid.
+        assert!(
+            alice.get(h_alice).is_err(),
+            "cap smoke-test: cap should be gone after revoke",
+        );
+        // Bob's derived cap is still present (cascading revocation is separate).
+        assert!(
+            bob.get(h_bob).is_ok(),
+            "cap smoke-test: Bob's derived cap should survive a single-table revoke",
+        );
+    }
+    kprintln!("[cap] smoke-test passed");
+
+    // ── Cascade-revoke smoke-test ─────────────────────────────────────────
+    {
+        let mut alice = cap::CapabilityTable::new();
+        let mut bob   = cap::CapabilityTable::new();
+
+        let obj = cap::create_object(cap::KernelObject::Memory {
+            base_pa: 0x3000, frame_count: 1,
+        }).expect("cascade smoke: create_object");
+
+        let h_alice = cap::create_root_cap(
+            &mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj,
+        );
+        let h_bob = cap::cap_grant(
+            &mut alice, h_alice, 99, &mut bob, cap::CapRights::READ,
+        ).expect("cascade smoke: cap_grant");
+
+        // Alice cascade-revokes her root cap → bob's derived cap disappears too.
+        let bob_ptr: *mut cap::CapabilityTable = &mut bob;
+        cap::cap_cascade_revoke(&mut alice, h_alice, &mut |tid| {
+            if tid == 99 { bob_ptr } else { core::ptr::null_mut() }
+        }).expect("cascade smoke: revoke");
+
+        assert!(alice.get(h_alice).is_err(), "cascade: alice's cap should be gone");
+        assert!(bob.get(h_bob).is_err(),     "cascade: bob's derived cap should be gone");
+    }
+    kprintln!("[cap] cascade-revoke smoke-test passed");
+
+    // ── Userspace entry smoke-test ────────────────────────────────────────
+    // Spawn a kernel task that maps a user code page, writes `mov eax,1;
+    // syscall` into it (SYS_TASK_EXIT = 1), and enters ring 3.  The syscall
+    // handler calls task_exit(), marks the task Dead, and switches back to
+    // kmain.
+    task::spawn_kernel_task(userspace_smoke_task);
+    task::yield_task();
+    kprintln!("[syscall] userspace entry smoke-test passed");
+
     kprintln!("Boot complete.");
 
     loop { unsafe { core::arch::asm!("hlt") }; }
+}
+
+/// Kernel task for the Step 10 userspace smoke-test.
+///
+/// Maps a user code page and a user stack page, writes two instructions
+/// (`mov eax, SYS_TASK_EXIT; syscall`) into the code page, then enters
+/// ring 3.  The syscall handler calls `task_exit()`, which marks this task
+/// Dead and switches back to kmain.
+fn userspace_smoke_task() -> ! {
+    // Allocate and map a user-executable code page.
+    let code_phys = pmm::alloc_frame().expect("userspace smoke: no frame for code");
+    let code_va   = vmm::VirtAddr(0x0000_0001_0000_0000);
+    vmm::map_page(code_va, code_phys, vmm::PageFlags::USER_RX);
+
+    // Write: `mov eax, 1` (SYS_TASK_EXIT); `syscall`
+    unsafe {
+        let p = code_va.as_u64() as *mut u8;
+        p.add(0).write(0xB8);                           // MOV EAX, imm32
+        p.add(1).write(syscall::SYS_TASK_EXIT as u8);   // imm32 byte 0
+        p.add(2).write(0x00);
+        p.add(3).write(0x00);
+        p.add(4).write(0x00);
+        p.add(5).write(0x0F);                           // SYSCALL (two-byte opcode)
+        p.add(6).write(0x05);
+    }
+
+    // Allocate and map a user stack page.
+    let stack_phys = pmm::alloc_frame().expect("userspace smoke: no frame for stack");
+    let stack_va   = vmm::VirtAddr(0x0000_0002_0000_0000);
+    vmm::map_page(stack_va, stack_phys, vmm::PageFlags::USER_RW);
+    let stack_top  = vmm::VirtAddr(stack_va.as_u64() + 4096);
+
+    // Enter ring 3 — never returns (user code calls SYS_TASK_EXIT).
+    syscall::enter_userspace(code_va, stack_top);
 }
 
 /// Second kernel task: prints three ticks interleaved with task A, then exits.

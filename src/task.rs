@@ -94,9 +94,11 @@ pub struct TaskContext {
 pub const KERNEL_STACK_SIZE: usize = 16 * 1024; // 16 KiB per task
 
 pub struct Task {
-    pub id:      TaskId,
-    pub state:   TaskState,
-    pub context: TaskContext,
+    pub id:        TaskId,
+    pub state:     TaskState,
+    pub context:   TaskContext,
+    /// Per-task capability table.
+    pub cap_table: crate::cap::CapabilityTable,
     /// Heap allocation backing this task's kernel stack.  Must not be resized
     /// after spawn; `context.rsp` points into this buffer.
     _stack: Vec<u8>,
@@ -132,10 +134,11 @@ unsafe fn get_sched() -> &'static mut Scheduler {
 /// `kmain` thread.  Must be called before `spawn_kernel_task` / `yield_task`.
 pub fn init() {
     let bootstrap = Box::new(Task {
-        id:      0,
-        state:   TaskState::Running,
-        context: TaskContext { rsp: 0 }, // filled by the first switch_context
-        _stack:  Vec::new(),             // kmain uses the existing boot stack
+        id:        0,
+        state:     TaskState::Running,
+        context:   TaskContext { rsp: 0 }, // filled by the first switch_context
+        cap_table: crate::cap::CapabilityTable::new(),
+        _stack:    Vec::new(),             // kmain uses the existing boot stack
     });
 
     let mut tasks = Vec::new();
@@ -177,9 +180,10 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
 
     sched.tasks.push(Box::new(Task {
         id,
-        state:   TaskState::Ready,
-        context: TaskContext { rsp: initial_rsp as u64 },
-        _stack:  stack,
+        state:     TaskState::Ready,
+        context:   TaskContext { rsp: initial_rsp as u64 },
+        cap_table: crate::cap::CapabilityTable::new(),
+        _stack:    stack,
     }));
 
     id
@@ -237,6 +241,9 @@ pub fn yield_task() {
 
     // After this call returns we are back in `current`'s context.
     unsafe { switch_context(from_ctx, to_ctx); }
+    // Re-enable interrupts: if we were switched to from a timer ISR context
+    // (IF=0), the resumed task must run with interrupts enabled.
+    unsafe { core::arch::asm!("sti", options(nostack)) };
 }
 
 /// Terminate the current task.  Marks it Dead, switches to the next ready task,
@@ -270,6 +277,22 @@ pub fn task_exit() -> ! {
     unsafe { switch_context(from_ctx, to_ctx); }
 
     unreachable!("task_exit: returned from switch_context")
+}
+
+/// Return the top of the current task's kernel stack.
+///
+/// Returns 0 for the bootstrap task, which uses the existing boot stack and
+/// has no heap-allocated `_stack`.  `syscall::enter_userspace` skips the
+/// TSS/KERN_RSP update in that case (ring-3 entry from the boot task is not
+/// supported).
+pub fn current_kernel_stack_top() -> u64 {
+    let sched = unsafe { get_sched() };
+    let task = &sched.tasks[sched.current];
+    if task._stack.is_empty() {
+        0
+    } else {
+        task._stack.as_ptr() as u64 + task._stack.len() as u64
+    }
 }
 
 /// Block the task with `id`, removing it from scheduling until `wake_task` is called.

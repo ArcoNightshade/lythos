@@ -67,3 +67,9 @@ pub fn init() {
         core::arch::asm!("lidt [{}]", in(reg) &raw const ptr, options(nostack, readonly));
     }
 }
+
+/// Install a handler for a hardware IRQ vector (32–255).
+/// Called by device drivers after `idt::init()`.
+pub fn register_irq(vector: u8, handler: u64) {
+    unsafe { IDT[vector as usize] = IdtEntry::interrupt(handler) };
+}
