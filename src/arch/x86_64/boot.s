@@ -52,22 +52,30 @@ mb2_end:
 _start:
     cli
 
-    /* Save Multiboot magic (EAX) and info pointer (EBX) before any register
-     * is clobbered.  Both are 32-bit values; the upper 32 bits of the BSS
-     * storage stay zero (BSS-initialised) so 64-bit loads give the right u64. */
-    mov  %eax, mb_magic
-    mov  %ebx, mb_info_ptr
+    /* Stash Multiboot arguments in callee-saved registers so the BSS clear
+     * below doesn't clobber them (mb_magic/mb_info_ptr live in .bss).     */
+    mov  %eax, %esi          /* ESI = mb_magic    */
+    mov  %ebx, %ebp          /* EBP = mb_info_ptr */
 
-    /* Set up a temporary stack in our BSS stack region */
-    mov  $boot_stack_top, %esp
-
-    /* ── Zero the three page-table frames (3 × 4096 bytes) ───────────── */
-    mov  $p4_table, %edi
+    /* ── Zero the entire BSS section ─────────────────────────────────── */
+    /* The Multiboot header sets bss_end_addr=0 (skip loader zeroing), so
+     * we must zero BSS ourselves.  This covers page-table frames, the boot
+     * stack, and ALL Rust statics (AtomicU64, static mut, etc.).          */
+    mov  $__bss_start, %edi
     xor  %eax, %eax
-    mov  $3072, %ecx        /* 3 × 4096 / 4 = 3072 dwords */
+    mov  $__bss_end,   %ecx
+    sub  %edi, %ecx         /* byte count */
+    shr  $2,   %ecx         /* dword count */
     rep  stosl
 
-    /* ── Build page tables ────────────────────────────────────────────── */
+    /* Now write the saved Multiboot values into their (now-zeroed) slots. */
+    mov  %esi, mb_magic
+    mov  %ebp, mb_info_ptr
+
+    /* Set up a temporary stack in our BSS stack region (now zeroed) */
+    mov  $boot_stack_top, %esp
+
+    /* ── Build page tables (BSS already zeroed above) ────────────────── */
 
     /* P4[0] → P3  (present | writable) */
     mov  $p3_table, %eax

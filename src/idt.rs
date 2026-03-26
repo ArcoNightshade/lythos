@@ -52,7 +52,47 @@ unsafe extern "C" {
 
 static mut IDT: [IdtEntry; 256] = [IdtEntry::absent(); 256];
 
+/// Remap the 8259 PIC so its IRQ vectors (0x20–0x2F) don't overlap CPU
+/// exceptions (0x00–0x1F), then mask every line.
+///
+/// Must be called before any `sti` — the PIC's power-on default maps
+/// IRQ 0 (timer) to vector 8, which is the CPU's #DF (double-fault) slot.
+unsafe fn remap_and_mask_pic() {
+    // Helper: write one byte to an I/O port.
+    #[inline]
+    unsafe fn outb(port: u16, val: u8) {
+        unsafe {
+            core::arch::asm!(
+                "out dx, al",
+                in("dx") port, in("al") val,
+                options(nomem, nostack, preserves_flags),
+            );
+        }
+    }
+
+    unsafe {
+        // ICW1: cascade mode, ICW4 required
+        outb(0x20, 0x11);
+        outb(0xA0, 0x11);
+        // ICW2: remap PIC1 → 0x20–0x27, PIC2 → 0x28–0x2F
+        outb(0x21, 0x20);
+        outb(0xA1, 0x28);
+        // ICW3: wiring
+        outb(0x21, 0x04);
+        outb(0xA1, 0x02);
+        // ICW4: 8086 mode
+        outb(0x21, 0x01);
+        outb(0xA1, 0x01);
+        // OCW1: mask all IRQ lines on both chips
+        outb(0x21, 0xFF);
+        outb(0xA1, 0xFF);
+    }
+}
+
 pub fn init() {
+    // Remap the 8259 PIC before loading the IDT and before any sti.
+    unsafe { remap_and_mask_pic() };
+
     // Wire vectors 0–31 to their ISR stubs.
     for i in 0..32_usize {
         let handler = unsafe { isr_stub_table[i] };

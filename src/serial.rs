@@ -110,7 +110,8 @@ pub struct SpinLock<T> {
 }
 
 pub struct SpinLockGuard<'a, T> {
-    lock: &'a SpinLock<T>,
+    lock:   &'a SpinLock<T>,
+    rflags: u64,  // RFLAGS saved before cli — restored on drop
 }
 
 impl<T> SpinLock<T> {
@@ -122,6 +123,18 @@ impl<T> SpinLock<T> {
     }
 
     pub fn lock(&self) -> SpinLockGuard<'_, T> {
+        // Save RFLAGS and disable interrupts before spinning.  Without this,
+        // the APIC timer can preempt us while we hold the lock and switch to
+        // another task that also calls kprintln, causing a deadlock.
+        let rflags: u64;
+        unsafe {
+            core::arch::asm!(
+                "pushfq",
+                "pop {rf}",
+                "cli",
+                rf = out(reg) rflags,
+            );
+        }
         loop {
             // Fast path: try to acquire immediately
             if self.locked
@@ -135,7 +148,7 @@ impl<T> SpinLock<T> {
                 hint::spin_loop();
             }
         }
-        SpinLockGuard { lock: self }
+        SpinLockGuard { lock: self, rflags }
     }
 }
 
@@ -146,6 +159,14 @@ unsafe impl<T: Send> Send for SpinLock<T> {}
 impl<T> Drop for SpinLockGuard<'_, T> {
     fn drop(&mut self) {
         self.lock.locked.store(false, Ordering::Release);
+        // Restore the interrupt flag to its state before lock().
+        unsafe {
+            core::arch::asm!(
+                "push {rf}",
+                "popfq",
+                rf = in(reg) self.rflags,
+            );
+        }
     }
 }
 

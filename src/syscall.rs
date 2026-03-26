@@ -242,16 +242,20 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
 
             let current_id = crate::task::current_task_id();
             let from_ptr   = crate::task::cap_table_ptr(current_id);
-            let to_ptr     = crate::task::cap_table_ptr(target_id);
 
+            // Validate the handle first — ENOCAP takes priority over EINVAL.
+            if from_ptr.is_null() { return ENOCAP; }
+            let from = unsafe { &mut *from_ptr };
+            if from.get(handle).is_err() { return ENOCAP; }
+
+            let to_ptr = crate::task::cap_table_ptr(target_id);
             if to_ptr.is_null() || from_ptr == to_ptr {
                 return EINVAL;
             }
 
             // SAFETY: from_ptr and to_ptr point to two *different* tasks' cap
             // tables; the single-threaded kernel guarantees no aliasing here.
-            let from = unsafe { &mut *from_ptr };
-            let to   = unsafe { &mut *to_ptr };
+            let to = unsafe { &mut *to_ptr };
 
             match crate::cap::cap_grant(from, handle, target_id, to, rights_mask) {
                 Ok(new_handle) => new_handle.0,
@@ -455,18 +459,40 @@ pub fn init() {
         // 4. FMASK: clear IF (bit 9) on syscall entry
         wrmsr(IA32_FMASK, 1 << 9);
 
-        // 5. Enable SMEP (CR4 bit 20)
-        let cr4: u64;
-        core::arch::asm!(
-            "mov {0}, cr4",
-            out(reg) cr4,
-            options(nostack, nomem),
-        );
-        core::arch::asm!(
-            "mov cr4, {0}",
-            in(reg) cr4 | (1u64 << 20),
-            options(nostack, nomem),
-        );
+        // 5. Enable SMEP (CR4 bit 20) only if CPUID leaf 7 reports support.
+        // CPUID.07H:EBX[bit 7] = 1 means SMEP is available.
+        let smep_supported: bool;
+        {
+            let ebx: u32;
+            core::arch::asm!(
+                "push rbx",
+                "xor eax, eax",
+                "xor ecx, ecx",
+                "mov eax, 7",  // leaf 7
+                "cpuid",
+                "mov {0:e}, ebx",
+                "pop rbx",
+                out(reg) ebx,
+                lateout("eax") _,
+                lateout("ecx") _,
+                lateout("edx") _,
+                options(nostack),
+            );
+            smep_supported = (ebx >> 7) & 1 == 1;
+        }
+        if smep_supported {
+            let cr4: u64;
+            core::arch::asm!(
+                "mov {0}, cr4",
+                out(reg) cr4,
+                options(nostack, nomem),
+            );
+            core::arch::asm!(
+                "mov cr4, {0}",
+                in(reg) cr4 | (1u64 << 20),
+                options(nostack, nomem),
+            );
+        }
     }
 }
 

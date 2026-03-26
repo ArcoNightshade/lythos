@@ -151,7 +151,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
 
     // ── Syscall interface ─────────────────────────────────────────────────
     syscall::init();
-    kprintln!("[syscall] initialized — SMEP on, LSTAR/STAR/FMASK configured");
+    kprintln!("[syscall] initialized — LSTAR/STAR/FMASK configured");
 
     // ── Capability system ─────────────────────────────────────────────────
     {
@@ -350,7 +350,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // ── Step 14 integration smoke tests ──────────────────────────────────
     step14_smoke();
 
-    kprintln!("[step14] all checks passed — kernel complete");
+    kprintln!("[integration] all checks passed");
     loop { unsafe { core::arch::asm!("hlt") }; }
 }
 
@@ -377,7 +377,7 @@ fn step14_smoke() {
         let result = syscall::syscall_dispatch(&mut frame);
         assert_eq!(result, syscall::ENOCAP, "step14: ENOCAP check failed");
     }
-    kprintln!("[step14] ENOCAP check passed");
+    kprintln!("[integration] ENOCAP check passed");
 
     // ── Check 4 + 5: IPC between two userspace tasks ─────────────────────
     // Create a fresh IPC endpoint and add a cap to the bootstrap task's table
@@ -417,8 +417,8 @@ fn step14_smoke() {
             "step14: IPC sender task did not complete"
         );
     }
-    kprintln!("[step14] IPC userspace send/recv passed");
-    kprintln!("[step14] task_exit + scheduler reap verified");
+    kprintln!("[integration] IPC userspace send/recv passed");
+    kprintln!("[integration] task_exit + scheduler reap verified");
 }
 
 // ── Boot-info helpers ─────────────────────────────────────────────────────────

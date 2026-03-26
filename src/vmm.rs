@@ -139,17 +139,23 @@ fn alloc_table() -> PhysAddr {
 /// Walk the P4 → P3 → P2 → P1 chain for `virt`, creating intermediate tables
 /// as needed.  Returns a mutable reference to the leaf P1 entry.
 ///
+/// `user`: if true, every intermediate entry traversed will have the U/S bit
+/// (bit 2) set.  x86_64 requires U/S=1 at *every* level for CPL=3 accesses
+/// to succeed; kernel-only mappings leave U/S clear on intermediate entries.
+///
 /// # Panics
 /// Panics if any intermediate PD entry is a 2 MiB huge page (PS=1).
 /// Callers must not use this for virtual addresses in the 0→1 GiB identity
 /// range, which is mapped with huge pages.
-unsafe fn walk_or_create(pml4: PhysAddr, virt: VirtAddr) -> &'static mut PageTableEntry {
+unsafe fn walk_or_create(pml4: PhysAddr, virt: VirtAddr, user: bool) -> &'static mut PageTableEntry {
     macro_rules! descend {
         ($parent:expr, $idx:expr) => {{
             let entry = &mut $parent.0[$idx];
             if !entry.is_present() {
                 *entry = PageTableEntry::table(alloc_table());
             }
+            // For user mappings, all intermediate entries must have U/S set.
+            if user { entry.0 |= 1 << 2; }
             assert!(
                 !entry.is_huge(),
                 "vmm: map_page hit a huge-page entry — \
@@ -192,7 +198,8 @@ unsafe fn walk_existing(pml4: PhysAddr, virt: VirtAddr) -> Option<&'static mut P
 /// Panics if `virt` falls inside the 0→1 GiB identity range (huge pages).
 pub fn map_page(virt: VirtAddr, phys: PhysAddr, flags: PageFlags) {
     let pml4 = PhysAddr(unsafe { PML4_PHYS });
-    let entry = unsafe { walk_or_create(pml4, virt) };
+    let user = flags.0 & (1 << 2) != 0; // propagate U/S through intermediate entries
+    let entry = unsafe { walk_or_create(pml4, virt, user) };
     entry.set(phys, flags);
     unsafe {
         core::arch::asm!(
