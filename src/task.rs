@@ -43,6 +43,8 @@ use alloc::vec::Vec;
 use core::arch::global_asm;
 use core::cell::UnsafeCell;
 
+use crate::vmm::VirtAddr;
+
 // ── Assembly: context switch ──────────────────────────────────────────────────
 
 global_asm!(r#"
@@ -102,6 +104,10 @@ pub struct Task {
     /// Heap allocation backing this task's kernel stack.  Must not be resized
     /// after spawn; `context.rsp` points into this buffer.
     _stack: Vec<u8>,
+    /// Ring-3 entry point set by `spawn_userspace_task`; None for kernel tasks.
+    pub entry_point:    Option<VirtAddr>,
+    /// User-mode stack top set by `spawn_userspace_task`; None for kernel tasks.
+    pub user_stack_top: Option<VirtAddr>,
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
@@ -134,11 +140,13 @@ unsafe fn get_sched() -> &'static mut Scheduler {
 /// `kmain` thread.  Must be called before `spawn_kernel_task` / `yield_task`.
 pub fn init() {
     let bootstrap = Box::new(Task {
-        id:        0,
-        state:     TaskState::Running,
-        context:   TaskContext { rsp: 0 }, // filled by the first switch_context
-        cap_table: crate::cap::CapabilityTable::new(),
-        _stack:    Vec::new(),             // kmain uses the existing boot stack
+        id:             0,
+        state:          TaskState::Running,
+        context:        TaskContext { rsp: 0 }, // filled by the first switch_context
+        cap_table:      crate::cap::CapabilityTable::new(),
+        _stack:         Vec::new(),             // kmain uses the existing boot stack
+        entry_point:    None,
+        user_stack_top: None,
     });
 
     let mut tasks = Vec::new();
@@ -180,10 +188,12 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
 
     sched.tasks.push(Box::new(Task {
         id,
-        state:     TaskState::Ready,
-        context:   TaskContext { rsp: initial_rsp as u64 },
-        cap_table: crate::cap::CapabilityTable::new(),
-        _stack:    stack,
+        state:          TaskState::Ready,
+        context:        TaskContext { rsp: initial_rsp as u64 },
+        cap_table:      crate::cap::CapabilityTable::new(),
+        _stack:         stack,
+        entry_point:    None,
+        user_stack_top: None,
     }));
 
     id
@@ -279,10 +289,108 @@ pub fn task_exit() -> ! {
     unreachable!("task_exit: returned from switch_context")
 }
 
+/// Replace the bootstrap task's (id=0) capability table.
+///
+/// Called by `kmain` just before exec'ing lythd so that `spawn_userspace_task`
+/// can inherit the root capabilities from the bootstrap task.
+pub fn set_bootstrap_cap_table(table: crate::cap::CapabilityTable) {
+    let sched = unsafe { get_sched() };
+    for task in sched.tasks.iter_mut() {
+        if task.id == 0 {
+            task.cap_table = table;
+            return;
+        }
+    }
+    panic!("set_bootstrap_cap_table: bootstrap task not found");
+}
+
+/// Return `true` if a task with `id` is still in the scheduler queue.
+///
+/// Returns `false` once the task has been reaped by `sweep_dead`.  Used by
+/// the Step 14 smoke test to wait for userspace tasks to complete.
+pub fn task_exists(id: TaskId) -> bool {
+    let sched = unsafe { get_sched() };
+    sched.tasks.iter().any(|t| t.id == id)
+}
+
 /// Return the ID of the currently running task.
 pub fn current_task_id() -> TaskId {
     let sched = unsafe { get_sched() };
     sched.tasks[sched.current].id
+}
+
+/// Spawn a new userspace task.
+///
+/// Creates a kernel stack with a `trampoline` entry point (typically
+/// `elf::exec_trampoline`), stores `entry` and `stack_top` in the task so the
+/// trampoline can read them, and inherits each capability in `caps` from the
+/// current task's table into the new task's table.
+///
+/// The task is enqueued as Ready but does not run until the caller yields.
+pub fn spawn_userspace_task(
+    entry:      VirtAddr,
+    stack_top:  VirtAddr,
+    caps:       &[crate::cap::CapHandle],
+    trampoline: fn() -> !,
+) -> TaskId {
+    let mut stack = Vec::with_capacity(KERNEL_STACK_SIZE);
+    stack.resize(KERNEL_STACK_SIZE, 0u8);
+
+    let stack_base  = stack.as_ptr() as usize;
+    let initial_rsp = stack_base + KERNEL_STACK_SIZE - 64;
+
+    unsafe {
+        let p = initial_rsp as *mut u64;
+        p.add(0).write(0);               // r15
+        p.add(1).write(0);               // r14
+        p.add(2).write(0);               // r13
+        p.add(3).write(0);               // r12
+        p.add(4).write(0);               // rbx
+        p.add(5).write(0);               // rbp
+        p.add(6).write(trampoline as u64); // rip
+        p.add(7).write(0);               // padding
+    }
+
+    let sched = unsafe { get_sched() };
+    let id    = sched.next_id;
+    sched.next_id += 1;
+
+    // Inherit capabilities from the current (spawning) task.
+    let mut cap_table = crate::cap::CapabilityTable::new();
+    {
+        let caller_ptr: *const crate::cap::CapabilityTable =
+            &sched.tasks[sched.current].cap_table;
+        let caller = unsafe { &*caller_ptr };
+        for &handle in caps {
+            let _ = crate::cap::cap_inherit(caller, handle, &mut cap_table);
+        }
+    }
+
+    sched.tasks.push(Box::new(Task {
+        id,
+        state:          TaskState::Ready,
+        context:        TaskContext { rsp: initial_rsp as u64 },
+        cap_table,
+        _stack:         stack,
+        entry_point:    Some(entry),
+        user_stack_top: Some(stack_top),
+    }));
+
+    id
+}
+
+/// Return the ring-3 entry point and user stack top for the current task.
+///
+/// Called by `exec_trampoline` immediately before entering ring-3.
+/// Panics if the current task has no stored userspace entry (i.e. it is a
+/// kernel-only task).
+pub fn current_entry_and_stack() -> (VirtAddr, VirtAddr) {
+    let sched = unsafe { get_sched() };
+    let task  = &sched.tasks[sched.current];
+    (
+        task.entry_point   .expect("current_entry_and_stack: not a userspace task"),
+        task.user_stack_top.expect("current_entry_and_stack: not a userspace task"),
+    )
 }
 
 /// Return a raw pointer to the capability table of the task with the given ID,

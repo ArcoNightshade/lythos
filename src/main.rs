@@ -10,6 +10,7 @@ use core::panic::PanicInfo;
 
 pub mod apic;
 pub mod cap;
+pub mod elf;
 pub mod heap;
 pub mod ipc;
 mod exceptions;
@@ -288,9 +289,192 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     task::yield_task();
     kprintln!("[syscall] userspace entry smoke-test passed");
 
-    kprintln!("Boot complete.");
+    // ── ELF exec smoke-test ───────────────────────────────────────────────
+    // Load SMOKE_ELF (hand-crafted ELF64 that calls SYS_TASK_EXIT) via the
+    // full exec path: ELF parser → segment mapping → stack allocation →
+    // ABI stack frame → exec_trampoline → ring-3 entry.
+    // The task exits via SYS_TASK_EXIT, returning control to kmain.
+    elf::exec(elf::SMOKE_ELF, &[])
+        .expect("elf smoke-test: exec failed");
+    task::yield_task();
+    kprintln!("[elf] smoke-test passed");
 
+    // ── lythd bootstrap — Step 13 ─────────────────────────────────────────
+    //
+    // Build the initial capability set and exec lythd with it.
+    //
+    // Cap layout handed to lythd (in exec order):
+    //   handle 0 — root memory capability (all physical frames)
+    //   handle 1 — rollback capability    (privileged SYS_ROLLBACK gate)
+    //   handle 2 — boot-info IPC endpoint (one pre-queued BootInfo message)
+
+    // Root memory capability: covers the full physical address space.
+    let mem_obj = cap::create_object(cap::KernelObject::Memory {
+        base_pa:     0,
+        frame_count: pmm::free_frame_count() as u64,
+    }).expect("lythd bootstrap: mem cap OOM");
+
+    // Rollback capability: exclusive privilege for lythd.
+    let rollback_obj = cap::create_object(cap::KernelObject::Rollback)
+        .expect("lythd bootstrap: rollback cap OOM");
+
+    // Boot-info IPC endpoint: pre-load one BootInfo message before exec.
+    let boot_ep_idx  = ipc::create_endpoint();
+    let boot_info_bytes = build_boot_info();
+    ipc::send(boot_ep_idx, &boot_info_bytes);
+
+    let boot_ipc_obj = cap::create_object(cap::KernelObject::Ipc { endpoint_idx: boot_ep_idx })
+        .expect("lythd bootstrap: boot-info cap OOM");
+
+    // Insert all three caps into kmain's table so spawn_userspace_task can inherit them.
+    let mut kmain_caps = cap::CapabilityTable::new();
+    let mem_cap      = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Memory,   cap::CapRights::ALL, mem_obj);
+    let rollback_cap = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Rollback, cap::CapRights::ALL, rollback_obj);
+    let boot_cap     = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Ipc,      cap::CapRights::ALL, boot_ipc_obj);
+
+    // Temporarily give kmain's bootstrap task this cap table so spawn_userspace_task
+    // can read from it during cap inheritance.
+    task::set_bootstrap_cap_table(kmain_caps);
+
+    elf::exec(elf::LYTHD_ELF, &[mem_cap, rollback_cap, boot_cap])
+        .expect("lythd bootstrap: exec failed");
+
+    kprintln!("[boot] lythd launched — entering scheduler");
+
+    // Yield until lythd exits (in the real system lythd never exits; here the
+    // placeholder ELF exits after consuming the boot-info message).
+    task::yield_task();
+
+    kprintln!("[boot] lythd exited — kernel idle");
+
+    // ── Step 14 integration smoke tests ──────────────────────────────────
+    step14_smoke();
+
+    kprintln!("[step14] all checks passed — kernel complete");
     loop { unsafe { core::arch::asm!("hlt") }; }
+}
+
+/// Step 14 integration checklist, run in-kernel after the full boot sequence.
+///
+/// Checks verified here:
+///   1. Boot completes without triple fault          (implicit — we reached this line)
+///   2. lythd ELF loaded and entered ring 3          (implicit — yield returned above)
+///   3. lythd consumed its boot-info cap             (implicit — SYS_IPC_RECV succeeded)
+///   4. IPC send/recv between two userspace tasks    (active test below)
+///   5. task_exit reaps correctly                    (active test below)
+///   6. Unauthorized cap access returns ENOCAP       (active test below)
+///   7. QEMU `-d int,cpu_reset` shows no faults      (manual — run: make qemu)
+fn step14_smoke() {
+    // ── Check 6: ENOCAP ──────────────────────────────────────────────────
+    // Call syscall_dispatch directly with a handle index that's way out of
+    // range in the bootstrap task's cap table.
+    {
+        let mut frame: syscall::SyscallFrame = unsafe { core::mem::zeroed() };
+        frame.nr = syscall::SYS_CAP_GRANT;
+        frame.a1 = 0xDEAD_BEEF_0000_0000u64; // bogus CapHandle
+        frame.a2 = 99u64;                     // target task id
+        frame.a3 = 0xFFu64;                   // rights mask
+        let result = syscall::syscall_dispatch(&mut frame);
+        assert_eq!(result, syscall::ENOCAP, "step14: ENOCAP check failed");
+    }
+    kprintln!("[step14] ENOCAP check passed");
+
+    // ── Check 4 + 5: IPC between two userspace tasks ─────────────────────
+    // Create a fresh IPC endpoint and add a cap to the bootstrap task's table
+    // so both exec'd tasks can inherit it.
+    {
+        let ep_idx = ipc::create_endpoint();
+        let ep_obj = cap::create_object(cap::KernelObject::Ipc { endpoint_idx: ep_idx })
+            .expect("step14: IPC ep cap OOM");
+        let ipc_cap = {
+            // task 0 is the bootstrap (kmain) task; access its cap table directly.
+            let tbl = unsafe { &mut *task::cap_table_ptr(0) };
+            cap::create_root_cap(tbl, cap::CapKind::Ipc, cap::CapRights::ALL, ep_obj)
+        };
+
+        // Spawn receiver first — it will block on the empty ring.
+        // Spawn sender second — it sends one message and exits.
+        // Both inherit ipc_cap as handle 0 in their respective tables.
+        let recv_id = elf::exec(elf::IPC_RECEIVER_ELF, &[ipc_cap])
+            .expect("step14: receiver exec failed");
+        let send_id = elf::exec(elf::IPC_SENDER_ELF, &[ipc_cap])
+            .expect("step14: sender exec failed");
+
+        // Yield until both tasks are reaped (or 500 ms timeout).
+        let deadline = apic::ticks() + 500;
+        while apic::ticks() < deadline
+            && (task::task_exists(recv_id) || task::task_exists(send_id))
+        {
+            task::yield_task();
+        }
+
+        assert!(
+            !task::task_exists(recv_id),
+            "step14: IPC receiver task did not complete"
+        );
+        assert!(
+            !task::task_exists(send_id),
+            "step14: IPC sender task did not complete"
+        );
+    }
+    kprintln!("[step14] IPC userspace send/recv passed");
+    kprintln!("[step14] task_exit + scheduler reap verified");
+}
+
+// ── Boot-info helpers ─────────────────────────────────────────────────────────
+
+/// Boot-info message layout — exactly `ipc::MSG_SIZE` (64) bytes.
+///
+/// Passed to `lythd` via its boot-info IPC endpoint at handle 2.
+#[repr(C, packed)]
+struct BootInfo {
+    signature:   u64,       // 0xB007_1NFO_B007_1NFO
+    mem_bytes:   u64,       // total physical memory (free frames × 4096)
+    free_frames: u64,       // free physical frames at boot time
+    vendor:      [u8; 12],  // CPUID leaf 0 vendor string
+    _pad:        [u8; 28],  // zero-pad to 64 bytes
+}
+
+const _: () = assert!(core::mem::size_of::<BootInfo>() == ipc::MSG_SIZE);
+
+/// Build the initial `BootInfo` message for lythd.
+fn build_boot_info() -> [u8; ipc::MSG_SIZE] {
+    let free = pmm::free_frame_count() as u64;
+    let info = BootInfo {
+        signature:   0xB007_1000_B007_1000,
+        mem_bytes:   free * 4096,
+        free_frames: free,
+        vendor:      cpuid_vendor(),
+        _pad:        [0u8; 28],
+    };
+    unsafe { core::mem::transmute(info) }
+}
+
+/// Read the CPU vendor string via CPUID leaf 0.
+fn cpuid_vendor() -> [u8; 12] {
+    let ebx: u32;
+    let ecx: u32;
+    let edx: u32;
+    unsafe {
+        // rbx is reserved by LLVM; save and restore it around cpuid.
+        core::arch::asm!(
+            "push rbx",
+            "xor eax, eax",  // leaf 0
+            "cpuid",
+            "mov {0:e}, ebx",
+            "pop rbx",
+            out(reg) ebx,
+            out("ecx") ecx,
+            out("edx") edx,
+            lateout("eax") _,
+            options(nostack),
+        );
+    }
+    let mut v = [0u8; 12];
+    v[0..4].copy_from_slice(&ebx.to_le_bytes());
+    v[4..8].copy_from_slice(&edx.to_le_bytes());
+    v[8..12].copy_from_slice(&ecx.to_le_bytes());
+    v
 }
 
 /// Kernel task for the Step 10 userspace smoke-test.

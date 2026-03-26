@@ -74,7 +74,7 @@ unsafe extern "C" {
 pub fn init() {
     // Fill the TSS descriptor with the runtime base address of the TSS.
     let tss_base  = crate::tss::tss_addr();
-    let tss_limit = (mem::size_of::<crate::tss::Tss>() - 1) as u32; // 103 = 0x67
+    let tss_limit = (mem::size_of::<crate::tss::Tss>() - 1) as u32; // 103 = 0x67 ✓
     let (lo, hi) = encode_tss_descriptor(tss_base, tss_limit);
 
     unsafe {

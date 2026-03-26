@@ -6,8 +6,11 @@
 
 use core::cell::UnsafeCell;
 
-/// 64-bit TSS layout per Intel SDM Vol. 3A §7.7 (Table 7-11).
-/// Total size: 104 bytes.
+/// 64-bit TSS layout per AMD64 ABI (AMD Vol.2 Table 12-3 / OSDev convention).
+///
+/// The IOPB base is at byte offset 102, not 94. The Intel SDM table is
+/// ambiguous here; QEMU and real AMD64 hardware expect this layout.
+/// Total size: 104 bytes; limit = 103 = 0x67 (the required minimum).
 #[repr(C, packed)]
 pub struct Tss {
     _reserved0: u32,       // 0
@@ -16,18 +19,19 @@ pub struct Tss {
     _rsp2:      u64,       // 20
     _reserved1: u64,       // 28
     _ist:       [u64; 7],  // 36 — IST1–7 (unused)
-    _reserved2: u16,       // 92
-    pub iopb:   u16,       // 94 — IOPB offset = sizeof(Tss) → no IOPB
+    _reserved2: u64,       // 92 — 8-byte reserved field (AMD layout)
+    _reserved3: u16,       // 100
+    pub iopb:   u16,       // 102 — IOPB offset = sizeof(Tss) → no IOPB
 }
 
-const _: () = assert!(core::mem::size_of::<Tss>() == 96);
+const _: () = assert!(core::mem::size_of::<Tss>() == 104);
 
 impl Tss {
     const fn zero() -> Self {
         Self {
             _reserved0: 0, rsp0: 0, _rsp1: 0, _rsp2: 0, _reserved1: 0,
-            _ist: [0; 7], _reserved2: 0,
-            iopb: 96, // offset past end of TSS → no IOPB
+            _ist: [0; 7], _reserved2: 0, _reserved3: 0,
+            iopb: 104, // offset past end of TSS → no IOPB
         }
     }
 }

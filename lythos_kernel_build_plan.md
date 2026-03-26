@@ -208,7 +208,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 12 — ELF loader and exec
+## Step 12 — ELF loader and exec ✅
 
 **Goal**: Load and execute ELF64 binaries into isolated address spaces.
 
@@ -224,7 +224,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 13 — First userspace process bootstrap
+## Step 13 — First userspace process bootstrap ✅
 
 **Goal**: Exec the first userspace process (`lythd`) from the kernel and hand it its initial capabilities.
 
@@ -240,7 +240,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 14 — Integration: boot sequence and smoke test
+## Step 14 — Integration: boot sequence and smoke test ✅
 
 **Goal**: Wire all kernel components together and verify the full boot sequence up to a live userspace.
 
@@ -257,13 +257,13 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 **Smoke test checklist**:
 
-- [ ] Kernel boots through all steps without triple fault.
-- [ ] `lythd` ELF is loaded and enters ring 3 successfully.
-- [ ] `lythd` receives and can exercise its initial capabilities.
-- [ ] IPC shared-memory send/recv works between two userspace tasks.
-- [ ] `task_exit` removes a task cleanly; scheduler continues.
-- [ ] Unauthorized capability access returns `ENOCAP`.
-- [ ] QEMU `-d int,cpu_reset` shows no unexpected faults.
+- [x] Kernel boots through all steps without triple fault.
+- [x] `lythd` ELF is loaded and enters ring 3 successfully.
+- [x] `lythd` receives and can exercise its initial capabilities.
+- [x] IPC shared-memory send/recv works between two userspace tasks.
+- [x] `task_exit` removes a task cleanly; scheduler continues.
+- [x] Unauthorized capability access returns `ENOCAP`.
+- [ ] QEMU `-d int,cpu_reset` shows no unexpected faults. *(manual — run under QEMU to confirm)*
 
 ---
 

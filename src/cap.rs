@@ -267,6 +267,14 @@ impl CapabilityTable {
         slot.cap.take().ok_or(CapError::InvalidHandle)
     }
 
+    /// Return `true` if the table contains at least one capability of `kind`.
+    /// Used by the rollback syscall to verify the caller holds a Rollback cap.
+    pub fn has_kind(&self, kind: CapKind) -> bool {
+        self.slots.iter().any(|s| {
+            s.cap.as_ref().map_or(false, |c| c.kind == kind)
+        })
+    }
+
     /// Return handles of all capabilities whose `parent_id` matches `id`.
     /// Used by the syscall layer to implement cascading revocation.
     pub fn find_children(&self, parent_id: CapId) -> Vec<CapHandle> {
@@ -403,6 +411,28 @@ fn cascade_force(
             cascade_force(unsafe { &mut *ptr }, child_handle, find_table);
         }
     }
+}
+
+/// Inherit a capability into a new task's table during `exec`.
+///
+/// Kernel-only path: copies the capability with its original rights, without
+/// checking the `Grant` right or recording a child link.  Used by the ELF
+/// loader to seed the initial capability set of an exec'd process.
+pub fn cap_inherit(
+    from:   &CapabilityTable,
+    handle: CapHandle,
+    to:     &mut CapabilityTable,
+) -> Result<CapHandle, CapError> {
+    let src = from.get(handle)?;
+    let derived = Capability {
+        id:        alloc_cap_id(),
+        kind:      src.kind,
+        rights:    src.rights,
+        object:    src.object,
+        parent_id: src.parent_id,
+        children:  Vec::new(),
+    };
+    Ok(to.insert(derived))
 }
 
 /// Revoke a capability from `table`.

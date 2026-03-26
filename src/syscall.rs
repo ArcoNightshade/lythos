@@ -35,6 +35,8 @@
 /// |  6 | SYS_IPC_SEND    |
 /// |  7 | SYS_IPC_RECV    |
 /// |  8 | SYS_IPC_CREATE  |
+/// |  9 | SYS_ROLLBACK    |
+/// | 10 | SYS_EXEC        |
 
 use core::arch::global_asm;
 
@@ -49,6 +51,10 @@ pub const SYS_CAP_REVOKE: u64 = 5;
 pub const SYS_IPC_SEND:   u64 = 6;
 pub const SYS_IPC_RECV:   u64 = 7;
 pub const SYS_IPC_CREATE: u64 = 8;
+/// Privileged system reset.  Requires `CapKind::Rollback`.  Granted only to `lythd`.
+pub const SYS_ROLLBACK:   u64 = 9;
+/// Exec a new userspace process from an ELF blob in user memory.
+pub const SYS_EXEC:       u64 = 10;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -349,6 +355,42 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
                 core::ptr::copy_nonoverlapping(buf.as_ptr(), buf_ptr, n.min(buf_len));
             }
             n as u64
+        }
+        SYS_ROLLBACK => {
+            // Gate on the caller holding a CapKind::Rollback capability.
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOPERM; }
+            let table = unsafe { &*table_ptr };
+            if !table.has_kind(crate::cap::CapKind::Rollback) { return ENOPERM; }
+
+            // Privileged: halt the system for now.  lythd implements the actual
+            // rollback policy; the kernel just verifies the capability and stops.
+            crate::kprintln!("[rollback] triggered by task {} — halting", current_id);
+            loop { unsafe { core::arch::asm!("hlt") }; }
+        }
+        SYS_EXEC => {
+            // a1 = elf_ptr  (user VA, *const u8)
+            // a2 = elf_len  (bytes)
+            // a3 = caps_ptr (user VA, *const u64 array of raw CapHandle values)
+            // a4 = caps_len (element count)
+            extern crate alloc;
+            use alloc::vec::Vec;
+
+            let elf_ptr  = frame.a1 as *const u8;
+            let elf_len  = frame.a2 as usize;
+            let caps_ptr = frame.a3 as *const u64;
+            let caps_len = frame.a4 as usize;
+
+            let elf_data = unsafe { core::slice::from_raw_parts(elf_ptr, elf_len) };
+            let raw_caps = unsafe { core::slice::from_raw_parts(caps_ptr, caps_len) };
+            let caps: Vec<crate::cap::CapHandle> =
+                raw_caps.iter().map(|&h| crate::cap::CapHandle(h)).collect();
+
+            match crate::elf::exec(elf_data, &caps) {
+                Ok(task_id) => task_id,
+                Err(_)      => EINVAL,
+            }
         }
         _ => ENOSYS,
     }

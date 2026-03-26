@@ -65,8 +65,8 @@ pub extern "C" fn exception_handler(frame: *const ExceptionFrame) {
     }
 
     kprintln!(
-        "[EXCEPTION] vec={:#x}  err={:#x}  rip={:#x}  rflags={:#x}",
-        f.vector, f.error_code, f.rip, f.rflags
+        "[EXCEPTION] vec={:#x}  err={:#x}  rip={:#x}  cs={:#x}  rflags={:#x}",
+        f.vector, f.error_code, f.rip, f.cs, f.rflags
     );
     loop {
         unsafe { core::arch::asm!("hlt") };
