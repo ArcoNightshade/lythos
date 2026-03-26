@@ -24,16 +24,17 @@
 ///
 /// ## Syscall numbers
 ///
-/// | Nr | Name           |
-/// |----|----------------|
-/// |  0 | SYS_YIELD      |
-/// |  1 | SYS_TASK_EXIT  |
-/// |  2 | SYS_MMAP       |
-/// |  3 | SYS_MUNMAP     |
-/// |  4 | SYS_CAP_GRANT  |
-/// |  5 | SYS_CAP_REVOKE |
-/// |  6 | SYS_IPC_SEND   |
-/// |  7 | SYS_IPC_RECV   |
+/// | Nr | Name            |
+/// |----|-----------------|
+/// |  0 | SYS_YIELD       |
+/// |  1 | SYS_TASK_EXIT   |
+/// |  2 | SYS_MMAP        |
+/// |  3 | SYS_MUNMAP      |
+/// |  4 | SYS_CAP_GRANT   |
+/// |  5 | SYS_CAP_REVOKE  |
+/// |  6 | SYS_IPC_SEND    |
+/// |  7 | SYS_IPC_RECV    |
+/// |  8 | SYS_IPC_CREATE  |
 
 use core::arch::global_asm;
 
@@ -47,11 +48,18 @@ pub const SYS_CAP_GRANT:  u64 = 4;
 pub const SYS_CAP_REVOKE: u64 = 5;
 pub const SYS_IPC_SEND:   u64 = 6;
 pub const SYS_IPC_RECV:   u64 = 7;
+pub const SYS_IPC_CREATE: u64 = 8;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
 /// Returned in RAX for unknown or unimplemented syscalls (analogous to ENOSYS).
-pub const ENOSYS: u64 = u64::MAX;
+pub const ENOSYS:  u64 = (-1i64) as u64;
+/// Invalid or stale capability handle.
+pub const ENOCAP:  u64 = (-2i64) as u64;
+/// Insufficient capability rights for the requested operation.
+pub const ENOPERM: u64 = (-3i64) as u64;
+/// Invalid argument (e.g. target task not found, self-grant).
+pub const EINVAL:  u64 = (-4i64) as u64;
 
 // ── MSR addresses ─────────────────────────────────────────────────────────────
 
@@ -221,8 +229,127 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             crate::vmm::unmap_page(virt);
             0
         }
-        // IPC and capability syscalls: full implementation in Step 11.
-        SYS_CAP_GRANT | SYS_CAP_REVOKE | SYS_IPC_SEND | SYS_IPC_RECV => ENOSYS,
+        SYS_CAP_GRANT => {
+            let handle      = crate::cap::CapHandle(frame.a1);
+            let target_id   = frame.a2;   // TaskId of recipient
+            let rights_mask = crate::cap::CapRights(frame.a3 as u8);
+
+            let current_id = crate::task::current_task_id();
+            let from_ptr   = crate::task::cap_table_ptr(current_id);
+            let to_ptr     = crate::task::cap_table_ptr(target_id);
+
+            if to_ptr.is_null() || from_ptr == to_ptr {
+                return EINVAL;
+            }
+
+            // SAFETY: from_ptr and to_ptr point to two *different* tasks' cap
+            // tables; the single-threaded kernel guarantees no aliasing here.
+            let from = unsafe { &mut *from_ptr };
+            let to   = unsafe { &mut *to_ptr };
+
+            match crate::cap::cap_grant(from, handle, target_id, to, rights_mask) {
+                Ok(new_handle) => new_handle.0,
+                Err(crate::cap::CapError::NoGrant) => ENOPERM,
+                Err(_) => ENOCAP,
+            }
+        }
+        SYS_CAP_REVOKE => {
+            let handle     = crate::cap::CapHandle(frame.a1);
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &mut *table_ptr };
+
+            match crate::cap::cap_cascade_revoke(table, handle, &mut |tid| {
+                crate::task::cap_table_ptr(tid)
+            }) {
+                Ok(())                                    => 0,
+                Err(crate::cap::CapError::NoRevoke)       => ENOPERM,
+                Err(_)                                    => ENOCAP,
+            }
+        }
+        SYS_IPC_CREATE => {
+            // Allocate a ring-buffer page and register an IPC endpoint.
+            // Returns a capability handle (CapHandle.0) to the caller.
+            let endpoint_idx = crate::ipc::create_endpoint();
+
+            let obj = crate::cap::create_object(
+                crate::cap::KernelObject::Ipc { endpoint_idx }
+            ).expect("SYS_IPC_CREATE: KoTable OOM");
+
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &mut *table_ptr };
+
+            let handle = crate::cap::create_root_cap(
+                table,
+                crate::cap::CapKind::Ipc,
+                crate::cap::CapRights::ALL,
+                obj,
+            );
+            handle.0
+        }
+        SYS_IPC_SEND => {
+            // a1 = CapHandle, a2 = msg_ptr (user VA), a3 = msg_len
+            let handle  = crate::cap::CapHandle(frame.a1);
+            let msg_ptr = frame.a2 as *const u8;
+            let msg_len = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &*table_ptr };
+
+            let endpoint_idx = match table.get(handle) {
+                Ok(c) if c.kind == crate::cap::CapKind::Ipc
+                      && c.rights.has(crate::cap::CapRights::WRITE) => {
+                    match crate::cap::get_object(c.object) {
+                        Some(crate::cap::KernelObject::Ipc { endpoint_idx }) => *endpoint_idx,
+                        _ => return ENOCAP,
+                    }
+                }
+                Ok(_) => return ENOPERM,
+                Err(_) => return ENOCAP,
+            };
+
+            // Borrow the message bytes from user space (no SMAP, user VA accessible).
+            let msg = unsafe { core::slice::from_raw_parts(msg_ptr, msg_len) };
+            crate::ipc::send(endpoint_idx, msg);
+            0
+        }
+        SYS_IPC_RECV => {
+            // a1 = CapHandle, a2 = buf_ptr (user VA), a3 = buf_len
+            let handle  = crate::cap::CapHandle(frame.a1);
+            let buf_ptr = frame.a2 as *mut u8;
+            let buf_len = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &*table_ptr };
+
+            let endpoint_idx = match table.get(handle) {
+                Ok(c) if c.kind == crate::cap::CapKind::Ipc
+                      && c.rights.has(crate::cap::CapRights::READ) => {
+                    match crate::cap::get_object(c.object) {
+                        Some(crate::cap::KernelObject::Ipc { endpoint_idx }) => *endpoint_idx,
+                        _ => return ENOCAP,
+                    }
+                }
+                Ok(_) => return ENOPERM,
+                Err(_) => return ENOCAP,
+            };
+
+            // Receive into a kernel-side buffer, then copy to user space.
+            let mut buf = [0u8; crate::ipc::MSG_SIZE];
+            let n = crate::ipc::recv(endpoint_idx, &mut buf);
+            unsafe {
+                core::ptr::copy_nonoverlapping(buf.as_ptr(), buf_ptr, n.min(buf_len));
+            }
+            n as u64
+        }
         _ => ENOSYS,
     }
 }

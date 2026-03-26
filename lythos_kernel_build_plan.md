@@ -103,6 +103,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ## Step 6 — Heap allocator (kernel slab/linked-list) ✅
 
+
 **Goal**: Enable `alloc::` crate usage inside the kernel — `Box`, `Vec`, `Arc`, etc.
 
 **Implementation**:
@@ -117,18 +118,9 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 7 — Scheduling: kernel tasks and context switching (in progress)
+## Step 7 — Scheduling: kernel tasks and context switching ✅
 
 **Goal**: Define a task abstraction, implement cooperative context switching, add task exit and blocking, then wire preemptive scheduling to the APIC timer (Step 8).
-
-**Status**:
-
-- ✅ `Task` struct, `TaskContext`, `switch_context` assembly
-- ✅ Round-robin cooperative scheduler (`yield_task`)
-- ✅ `spawn_kernel_task`
-- ⬜ `task_exit` — mark task dead, remove from queue, schedule next
-- ⬜ `TaskState::Blocked` + `block_task` / `wake_task` — needed for IPC parking in Step 11
-- ⬜ Preemptive scheduling — wired from APIC timer ISR (Step 8)
 
 **Implementation**:
 
@@ -146,7 +138,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 8 — Interrupt controller: APIC and timer
+## Step 8 — Interrupt controller: APIC and timer ✅
 
 **Goal**: Replace PIC with APIC, configure a preemption timer, and support hardware IRQ routing.
 
@@ -164,7 +156,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 9 — Capability system
+## Step 9 — Capability system ✅
 
 **Goal**: Implement the core capability model: unforgeable tokens that grant access to kernel objects and IPC memory regions.
 
@@ -181,7 +173,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 10 — Userspace: ring 3 tasks and syscall interface
+## Step 10 — Userspace: ring 3 tasks and syscall interface ✅
 
 **Goal**: Run unprivileged code, establish the syscall boundary, and implement the minimal syscall surface.
 
@@ -202,7 +194,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 ---
 
-## Step 11 — IPC: shared memory regions
+## Step 11 — IPC: shared memory regions ✅
 
 **Goal**: Implement the shared-memory async IPC primitive that `lythmsg` (RaptorOS) will run on.
 

@@ -279,6 +279,28 @@ pub fn task_exit() -> ! {
     unreachable!("task_exit: returned from switch_context")
 }
 
+/// Return the ID of the currently running task.
+pub fn current_task_id() -> TaskId {
+    let sched = unsafe { get_sched() };
+    sched.tasks[sched.current].id
+}
+
+/// Return a raw pointer to the capability table of the task with the given ID,
+/// or null if no such task exists.
+///
+/// # Safety
+/// The caller must ensure no other mutable reference to the same table exists.
+/// In the single-threaded kernel this is trivially satisfied between syscalls.
+pub fn cap_table_ptr(id: TaskId) -> *mut crate::cap::CapabilityTable {
+    let sched = unsafe { get_sched() };
+    for task in sched.tasks.iter_mut() {
+        if task.id == id {
+            return &mut task.cap_table;
+        }
+    }
+    core::ptr::null_mut()
+}
+
 /// Return the top of the current task's kernel stack.
 ///
 /// Returns 0 for the bootstrap task, which uses the existing boot stack and
@@ -293,6 +315,43 @@ pub fn current_kernel_stack_top() -> u64 {
     } else {
         task._stack.as_ptr() as u64 + task._stack.len() as u64
     }
+}
+
+/// Mark the current task `Blocked` and switch to the next ready task.
+///
+/// Returns when another task calls `wake_task` on this task's ID.  If there
+/// are no other ready tasks the CPU halts (deadlock — shouldn't happen in a
+/// well-formed system where the waker is still running).
+pub fn block_and_yield() {
+    let sched = unsafe { get_sched() };
+    sweep_dead(sched);
+
+    let current = sched.current;
+    let n = sched.tasks.len();
+
+    // Mark the current task Blocked before searching for the next task so
+    // that the round-robin scan skips it correctly.
+    sched.tasks[current].state = TaskState::Blocked;
+
+    let mut next = (current + 1) % n;
+    loop {
+        if sched.tasks[next].state == TaskState::Ready { break; }
+        next = (next + 1) % n;
+        if next == current {
+            // No ready tasks — CPU halt (deadlock).
+            loop { unsafe { core::arch::asm!("hlt") }; }
+        }
+    }
+
+    let from_ctx: *mut   TaskContext = &mut sched.tasks[current].context;
+    let to_ctx:   *const TaskContext = &    sched.tasks[next].context;
+
+    sched.tasks[next].state = TaskState::Running;
+    sched.current           = next;
+
+    unsafe { switch_context(from_ctx, to_ctx); }
+    // Resumed here when wake_task + a subsequent schedule picks us back up.
+    unsafe { core::arch::asm!("sti", options(nostack)) };
 }
 
 /// Block the task with `id`, removing it from scheduling until `wake_task` is called.

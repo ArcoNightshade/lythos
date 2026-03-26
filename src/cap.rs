@@ -85,8 +85,8 @@ impl CapRights {
 pub enum KernelObject {
     /// Contiguous run of physical frames starting at `base_pa`.
     Memory { base_pa: u64, frame_count: u64 },
-    /// IPC endpoint — placeholder populated in Step 11.
-    Ipc,
+    /// IPC endpoint — index into `ipc::EP_TABLE`.
+    Ipc { endpoint_idx: usize },
     /// Hardware device identified by an optional IRQ line.
     Device { irq: Option<u8> },
     /// Privileged rollback trigger.

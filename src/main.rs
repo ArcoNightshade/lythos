@@ -11,6 +11,7 @@ use core::panic::PanicInfo;
 pub mod apic;
 pub mod cap;
 pub mod heap;
+pub mod ipc;
 mod exceptions;
 mod gdt;
 mod idt;
@@ -228,6 +229,55 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
         assert!(bob.get(h_bob).is_err(),     "cascade: bob's derived cap should be gone");
     }
     kprintln!("[cap] cascade-revoke smoke-test passed");
+
+    // ── IPC smoke-test ────────────────────────────────────────────────────
+    // Two kernel tasks share one endpoint.  The receiver spawns first and
+    // blocks immediately (ring is empty).  The sender runs next, posts three
+    // messages, and exits.  The receiver wakes on each message, verifies the
+    // payload, then exits after the third.  kmain yields until both are done.
+    {
+        use core::sync::atomic::{AtomicUsize, Ordering as O};
+        static IPC_EP: AtomicUsize = AtomicUsize::new(usize::MAX);
+        static IPC_RECV_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+        let ep_idx = ipc::create_endpoint();
+        IPC_EP.store(ep_idx, O::Relaxed);
+
+        fn ipc_receiver() -> ! {
+            use core::sync::atomic::Ordering as O;
+            let ep = IPC_EP.load(O::Relaxed);
+            for expected in 1u8..=3 {
+                let mut buf = [0u8; ipc::MSG_SIZE];
+                ipc::recv(ep, &mut buf);
+                assert_eq!(buf[0], expected, "ipc smoke: wrong payload byte");
+                IPC_RECV_COUNT.fetch_add(1, O::Relaxed);
+            }
+            kprintln!("[ipc] receiver done");
+            task::task_exit();
+        }
+
+        fn ipc_sender() -> ! {
+            use core::sync::atomic::Ordering as O;
+            let ep = IPC_EP.load(O::Relaxed);
+            for i in 1u8..=3 {
+                let mut msg = [0u8; ipc::MSG_SIZE];
+                msg[0] = i;
+                ipc::send(ep, &msg);
+                kprintln!("[ipc] sent message {}", i);
+            }
+            kprintln!("[ipc] sender done");
+            task::task_exit();
+        }
+
+        task::spawn_kernel_task(ipc_receiver);
+        task::spawn_kernel_task(ipc_sender);
+
+        // Yield until both tasks have exited (recv count reaches 3).
+        while IPC_RECV_COUNT.load(core::sync::atomic::Ordering::Relaxed) < 3 {
+            task::yield_task();
+        }
+    }
+    kprintln!("[ipc] smoke-test passed");
 
     // ── Userspace entry smoke-test ────────────────────────────────────────
     // Spawn a kernel task that maps a user code page, writes `mov eax,1;
