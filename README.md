@@ -1,15 +1,7 @@
 # lythos
 
-```
-  _         _   _
- | |_  _  _| |_| |_  ___  ___
- | | || ||  _|   / _ (_-<
- |_|\_, | \__|_|_\___/__/
-    |__/
-```
-
 A capability-based microkernel written in Rust, targeting bare-metal x86_64.
-Built from scratch, one step at a time.
+Built from scratch.
 
 ---
 
