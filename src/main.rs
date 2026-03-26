@@ -341,11 +341,11 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
 
     kprintln!("[boot] lythd launched — entering scheduler");
 
-    // Yield until lythd exits (in the real system lythd never exits; here the
-    // placeholder ELF exits after consuming the boot-info message).
+    // Yield to let lythd run its init sequence.  In the real system lythd
+    // never exits — it blocks on its service registry endpoint.
     task::yield_task();
 
-    kprintln!("[boot] lythd exited — kernel idle");
+    kprintln!("[boot] lythd init complete — running integration checks");
 
     // ── Step 14 integration smoke tests ──────────────────────────────────
     step14_smoke();

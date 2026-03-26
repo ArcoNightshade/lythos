@@ -37,6 +37,7 @@
 /// |  8 | SYS_IPC_CREATE  |
 /// |  9 | SYS_ROLLBACK    |
 /// | 10 | SYS_EXEC        |
+/// | 11 | SYS_LOG         |
 
 use core::arch::global_asm;
 
@@ -55,6 +56,8 @@ pub const SYS_IPC_CREATE: u64 = 8;
 pub const SYS_ROLLBACK:   u64 = 9;
 /// Exec a new userspace process from an ELF blob in user memory.
 pub const SYS_EXEC:       u64 = 10;
+/// Write a UTF-8 string to the kernel serial console.  Debug aid only.
+pub const SYS_LOG:        u64 = 11;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -395,6 +398,20 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
                 Ok(task_id) => task_id,
                 Err(_)      => EINVAL,
             }
+        }
+        SYS_LOG => {
+            // a1 = ptr (user VA, *const u8), a2 = len
+            let ptr = frame.a1 as *const u8;
+            let len = frame.a2 as usize;
+            if len == 0 { return 0; }
+            if len > 4096 { return EINVAL; }
+            // Must be in canonical user space (below the hole).
+            if frame.a1.saturating_add(frame.a2) > 0x0000_7FFF_FFFF_FFFFu64 { return EINVAL; }
+            let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
+            if let Ok(s) = core::str::from_utf8(bytes) {
+                crate::kprint!("{}", s);
+            }
+            0
         }
         _ => ENOSYS,
     }

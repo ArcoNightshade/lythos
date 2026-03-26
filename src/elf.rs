@@ -360,63 +360,18 @@ pub fn exec(elf_data: &[u8], caps: &[CapHandle]) -> Result<TaskId, ElfError> {
 //
 // The load VA is chosen to be above the VMM's 0→1 GiB identity-mapped region.
 
-/// Minimal lythd placeholder ELF.
+/// The real lythd init process binary, compiled from RaptorOS/lythd.
 ///
-/// Receives the boot-info message from cap handle 2 (`boot_info_cap`, the
-/// third cap inherited from the kernel in exec order: mem_cap=0, rollback_cap=1,
-/// boot_info_cap=2), then calls `SYS_TASK_EXIT`.
+/// Built with `cargo build --release` in the RaptorOS workspace targeting
+/// `x86_64-raptoros`.  Entry point is `_start` via `userspace.ld`.
 ///
-/// Assembly (entry at file offset 120 = VA 0x100000078):
-/// ```asm
-/// sub  rsp, 72              ; allocate 72-byte recv buffer on the user stack
-/// mov  eax, 7               ; SYS_IPC_RECV
-/// mov  edi, 2               ; a1 = boot_info_cap handle (CapHandle(2).0 = 2)
-/// mov  rsi, rsp             ; a2 = buf ptr
-/// mov  edx, 64              ; a3 = len
-/// syscall
-/// mov  eax, 1               ; SYS_TASK_EXIT
-/// syscall
-/// hlt                       ; unreachable
-/// ```
-pub static LYTHD_ELF: &[u8] = &[
-    // ── ELF header (64 bytes) ─────────────────────────────────────────────
-    0x7F, 0x45, 0x4C, 0x46,              // ELF magic
-    0x02, 0x01, 0x01, 0x00,              // ELFCLASS64, ELFDATA2LSB, EV1, OSABI
-    0x00, 0x00, 0x00, 0x00,              // padding
-    0x00, 0x00, 0x00, 0x00,              // padding
-    0x02, 0x00,                           // e_type:      ET_EXEC
-    0x3E, 0x00,                           // e_machine:   EM_X86_64
-    0x01, 0x00, 0x00, 0x00,              // e_version:   1
-    0x78, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,  // e_entry: 0x100000078
-    0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // e_phoff: 64
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // e_shoff: 0
-    0x00, 0x00, 0x00, 0x00,              // e_flags
-    0x40, 0x00,                           // e_ehsize:    64
-    0x38, 0x00,                           // e_phentsize: 56
-    0x01, 0x00,                           // e_phnum:     1
-    0x40, 0x00,                           // e_shentsize: 64
-    0x00, 0x00,                           // e_shnum:     0
-    0x00, 0x00,                           // e_shstrndx:  0
-    // ── PT_LOAD program header (56 bytes) ─────────────────────────────────
-    0x01, 0x00, 0x00, 0x00,              // p_type:   PT_LOAD
-    0x05, 0x00, 0x00, 0x00,              // p_flags:  PF_R | PF_X
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // p_offset: 0
-    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,  // p_vaddr:  0x100000000
-    0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,  // p_paddr:  0x100000000
-    0x98, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // p_filesz: 152
-    0x98, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // p_memsz:  152
-    0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // p_align:  0x1000
-    // ── Code (32 bytes at file offset 120) ────────────────────────────────
-    0x48, 0x83, 0xEC, 0x48,              // sub  rsp, 72
-    0xB8, 0x07, 0x00, 0x00, 0x00,        // mov  eax, 7   (SYS_IPC_RECV)
-    0xBF, 0x02, 0x00, 0x00, 0x00,        // mov  edi, 2   (boot_info_cap handle)
-    0x48, 0x89, 0xE6,                    // mov  rsi, rsp (buf)
-    0xBA, 0x40, 0x00, 0x00, 0x00,        // mov  edx, 64  (len)
-    0x0F, 0x05,                           // syscall       (SYS_IPC_RECV)
-    0xB8, 0x01, 0x00, 0x00, 0x00,        // mov  eax, 1   (SYS_TASK_EXIT)
-    0x0F, 0x05,                           // syscall       (SYS_TASK_EXIT)
-    0xF4,                                 // hlt           (unreachable)
-];
+/// lythd:
+///   1. Receives the BootInfo message on cap handle 2.
+///   2. Prints system info via SYS_LOG.
+///   3. Creates the service registry IPC endpoint.
+///   4. Blocks in the supervisor loop waiting for service registrations.
+pub static LYTHD_ELF: &[u8] =
+    include_bytes!("../../RaptorOS/target/x86_64-raptoros/release/lythd");
 
 pub static SMOKE_ELF: &[u8] = &[
     // ── ELF header (64 bytes) ─────────────────────────────────────────────
