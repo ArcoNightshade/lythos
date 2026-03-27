@@ -210,8 +210,37 @@ pub fn map_page(virt: VirtAddr, phys: PhysAddr, flags: PageFlags) {
     }
 }
 
+/// Return the physical address currently mapped at `virt`, or `None` if the
+/// page is not present at any level of the table walk.
+pub fn query_page(virt: VirtAddr) -> Option<PhysAddr> {
+    let pml4 = PhysAddr(unsafe { PML4_PHYS });
+    unsafe { walk_existing(pml4, virt) }
+        .filter(|e| e.is_present())
+        .map(|e| e.address())
+}
+
+/// Update the flags on an already-mapped page without changing the physical
+/// frame it points to.  No-op if the page is not present.
+pub fn update_page_flags(virt: VirtAddr, flags: PageFlags) {
+    let pml4 = PhysAddr(unsafe { PML4_PHYS });
+    if let Some(entry) = unsafe { walk_existing(pml4, virt) } {
+        if entry.is_present() {
+            let phys = entry.address();
+            entry.set(phys, flags);
+            unsafe {
+                core::arch::asm!(
+                    "invlpg [{va}]",
+                    va = in(reg) virt.as_u64(),
+                    options(nostack, preserves_flags),
+                );
+            }
+        }
+    }
+}
+
 /// Remove the mapping for `virt`.  No-op if the address was not mapped.
-/// Invalidates the TLB entry regardless.
+/// Invalidates the local TLB entry and sends a shootdown IPI to all other
+/// CPUs so they flush stale entries for this address.
 pub fn unmap_page(virt: VirtAddr) {
     let pml4 = PhysAddr(unsafe { PML4_PHYS });
     if let Some(entry) = unsafe { walk_existing(pml4, virt) } {
@@ -223,6 +252,143 @@ pub fn unmap_page(virt: VirtAddr) {
             va = in(reg) virt.as_u64(),
             options(nostack, preserves_flags),
         );
+    }
+    crate::apic::send_tlb_shootdown_ipi();
+}
+
+/// Free all frames owned by a user process's page table, then free the table
+/// frames themselves.
+///
+/// Walks PML4[0..255] only (the kernel higher-half [256..511] is shared and
+/// must not be touched).  Within PML4[0] the identity-map PD (shared across
+/// all processes) is identified and skipped — only per-process intermediate
+/// tables and leaf pages are freed.
+///
+/// # Safety
+/// `pml4` must be the physical address of a page table created by
+/// `create_user_page_table` and must not be the currently active CR3.
+pub fn free_user_page_table(pml4: PhysAddr) {
+    // Locate the shared identity-map PD so we can skip it.
+    let kern_p4     = unsafe { &*(PML4_PHYS as *const PageTable) };
+    let kern_p3     = unsafe { &*(kern_p4.0[0].address().as_u64() as *const PageTable) };
+    let shared_p2   = kern_p3.0[0].address();
+
+    let p4 = unsafe { &*(pml4.as_u64() as *const PageTable) };
+
+    // Walk user-half PML4 entries only.
+    for i in 0..256 {
+        let p4e = p4.0[i];
+        if !p4e.is_present() { continue; }
+        let p3_phys = p4e.address();
+        let p3      = unsafe { &*(p3_phys.as_u64() as *const PageTable) };
+
+        for j in 0..512 {
+            let p3e = p3.0[j];
+            if !p3e.is_present() { continue; }
+            let p2_phys = p3e.address();
+
+            // Skip the shared identity-map PD.
+            if p2_phys == shared_p2 { continue; }
+
+            let p2 = unsafe { &*(p2_phys.as_u64() as *const PageTable) };
+
+            for k in 0..512 {
+                let p2e = p2.0[k];
+                if !p2e.is_present() { continue; }
+                if p2e.is_huge() {
+                    // 2 MiB page — free the backing frame directly.
+                    pmm::free_frame(p2e.address());
+                    continue;
+                }
+                let p1_phys = p2e.address();
+                let p1      = unsafe { &*(p1_phys.as_u64() as *const PageTable) };
+                for l in 0..512 {
+                    let p1e = p1.0[l];
+                    if p1e.is_present() {
+                        pmm::free_frame(p1e.address()); // leaf page frame
+                    }
+                }
+                pmm::free_frame(p1_phys); // PT frame
+            }
+            pmm::free_frame(p2_phys); // PD frame
+        }
+        pmm::free_frame(p3_phys); // PDPT frame
+    }
+    pmm::free_frame(pml4); // PML4 frame
+}
+
+/// Return the physical address of the kernel's PML4.
+pub fn kernel_pml4() -> PhysAddr {
+    PhysAddr(unsafe { PML4_PHYS })
+}
+
+/// Create a fresh user-process page table that shares the kernel mappings.
+///
+/// Layout of the new PML4:
+/// - `[0]`       → fresh PDPT whose slot 0 re-uses the kernel's identity-map
+///                 PD (2 MiB huge pages, 0→1 GiB).  The PML4 entry carries
+///                 U/S so that `walk_or_create` can add per-process PDPT
+///                 entries (slots 4+) for user segments above 1 GiB.
+/// - `[256..511]` copied from the kernel PML4 (heap, IPC window, etc.).
+pub fn create_user_page_table() -> PhysAddr {
+    // Locate the kernel's identity-map PD by reading PML4[0] → PDPT[0].
+    let kern_p4  = unsafe { &*(PML4_PHYS as *const PageTable) };
+    let p3_phys  = kern_p4.0[0].address();
+    let kern_p3  = unsafe { &*(p3_phys.as_u64() as *const PageTable) };
+    let p2_phys  = kern_p3.0[0].address();
+
+    // New per-process PDPT: slot 0 → shared identity-map PD (no U/S —
+    // kernel identity map is not user-accessible).
+    let user_p3_phys = alloc_table();
+    let user_p3      = unsafe { &mut *(user_p3_phys.as_u64() as *mut PageTable) };
+    user_p3.0[0]     = PageTableEntry::table(p2_phys);
+
+    // New PML4.
+    let new_pml4_phys = alloc_table();
+    let new_p4        = unsafe { &mut *(new_pml4_phys.as_u64() as *mut PageTable) };
+
+    // PML4[0] → user PDPT with U/S so walk_or_create can add user entries.
+    new_p4.0[0] = PageTableEntry(user_p3_phys.as_u64() | 0x7); // P | W | U/S
+
+    // Copy kernel higher-half mappings PML4[256..511].
+    for i in 256..512 {
+        new_p4.0[i] = kern_p4.0[i];
+    }
+
+    new_pml4_phys
+}
+
+/// Map `virt` → `phys` in `pml4` without issuing `invlpg`.
+///
+/// Use this when building page tables for tasks that are not currently
+/// loaded in CR3.  For the active page table use `map_page`.
+pub fn map_page_in(pml4: PhysAddr, virt: VirtAddr, phys: PhysAddr, flags: PageFlags) {
+    let user  = flags.0 & (1 << 2) != 0;
+    let entry = unsafe { walk_or_create(pml4, virt, user) };
+    entry.set(phys, flags);
+}
+
+/// Query a page mapping in `pml4`.  Returns `None` if any table level is absent.
+pub fn query_page_in(pml4: PhysAddr, virt: VirtAddr) -> Option<PhysAddr> {
+    unsafe { walk_existing(pml4, virt) }
+        .filter(|e| e.is_present())
+        .map(|e| e.address())
+}
+
+/// Update flags on an existing mapping in `pml4`.  No-op if not present.
+pub fn update_page_flags_in(pml4: PhysAddr, virt: VirtAddr, flags: PageFlags) {
+    if let Some(entry) = unsafe { walk_existing(pml4, virt) } {
+        if entry.is_present() {
+            let phys = entry.address();
+            entry.set(phys, flags);
+        }
+    }
+}
+
+/// Clear a page mapping in `pml4`.  No-op if not present.  No `invlpg`.
+pub fn unmap_page_in(pml4: PhysAddr, virt: VirtAddr) {
+    if let Some(entry) = unsafe { walk_existing(pml4, virt) } {
+        entry.clear();
     }
 }
 

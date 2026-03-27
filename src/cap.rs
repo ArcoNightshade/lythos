@@ -275,6 +275,15 @@ impl CapabilityTable {
         })
     }
 
+    /// Return `true` if the table holds a capability of `kind` that includes
+    /// all bits in `rights`.  Used by `SYS_MMAP` to gate physical-frame
+    /// allocation on the caller holding a Memory capability with write access.
+    pub fn has_kind_with_rights(&self, kind: CapKind, rights: CapRights) -> bool {
+        self.slots.iter().any(|s| {
+            s.cap.as_ref().map_or(false, |c| c.kind == kind && c.rights.has(rights))
+        })
+    }
+
     /// Return handles of all capabilities whose `parent_id` matches `id`.
     /// Used by the syscall layer to implement cascading revocation.
     pub fn find_children(&self, parent_id: CapId) -> Vec<CapHandle> {

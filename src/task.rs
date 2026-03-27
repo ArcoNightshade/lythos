@@ -104,10 +104,25 @@ pub struct Task {
     /// Heap allocation backing this task's kernel stack.  Must not be resized
     /// after spawn; `context.rsp` points into this buffer.
     _stack: Vec<u8>,
+    /// Top of the usable kernel stack (highest address).  Set to 0 for the
+    /// bootstrap task, which uses the existing boot stack.
+    _stack_top: u64,
+    /// Guard page below the kernel stack: (virtual address, physical frame).
+    /// The physical frame is valid but the PTE is cleared (not-present) so that
+    /// stack overflow takes a clean #PF.  Remapped to KERNEL_RW in sweep_dead
+    /// before the Vec is dropped so that the heap free-list can write safely.
+    _guard_page: Option<(u64, crate::pmm::PhysAddr)>,
     /// Ring-3 entry point set by `spawn_userspace_task`; None for kernel tasks.
     pub entry_point:    Option<VirtAddr>,
     /// User-mode stack top set by `spawn_userspace_task`; None for kernel tasks.
     pub user_stack_top: Option<VirtAddr>,
+    /// Physical address of this task's PML4, or `None` for kernel tasks that
+    /// share the global kernel page table.
+    pub page_table: Option<u64>,
+    /// Sorted list of mapped user VA ranges `[va_start, va_end)`.
+    /// Only populated for user tasks (page_table is Some).
+    /// Used by SYS_MMAP/SYS_MUNMAP to detect double-map and invalid unmap.
+    pub vma_list: Vec<(u64, u64)>,
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────────
@@ -145,8 +160,12 @@ pub fn init() {
         context:        TaskContext { rsp: 0 }, // filled by the first switch_context
         cap_table:      crate::cap::CapabilityTable::new(),
         _stack:         Vec::new(),             // kmain uses the existing boot stack
+        _stack_top:     0,                      // boot stack; ring-3 entry not supported
+        _guard_page:    None,
         entry_point:    None,
         user_stack_top: None,
+        page_table:     None,
+        vma_list:       Vec::new(),
     });
 
     let mut tasks = Vec::new();
@@ -161,25 +180,35 @@ pub fn init() {
 ///
 /// `entry` must never return; call `task_exit()` when done.
 pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
-    // Allocate a zeroed kernel stack.  The heap allocator guarantees 16-byte
-    // alignment, so stack_top = base + KERNEL_STACK_SIZE is also aligned.
-    let mut stack = Vec::with_capacity(KERNEL_STACK_SIZE);
-    stack.resize(KERNEL_STACK_SIZE, 0u8);
+    const PAGE: usize = 4096;
 
-    let stack_top   = stack.as_ptr() as usize + KERNEL_STACK_SIZE;
-    let initial_rsp = stack_top - 64; // 64 % 16 == 0 → initial_rsp is 16-byte aligned
+    // Allocate KERNEL_STACK_SIZE + 2×PAGE bytes.  The extra page provides
+    // alignment headroom: the heap gives ≥16-byte alignment, so rounding up
+    // to the next page boundary wastes at most PAGE−16 = 4080 bytes, and we
+    // still have a full KERNEL_STACK_SIZE of usable stack above the guard page.
+    let mut stack = Vec::with_capacity(KERNEL_STACK_SIZE + 2 * PAGE);
+    stack.resize(KERNEL_STACK_SIZE + 2 * PAGE, 0u8);
+
+    let base     = stack.as_ptr() as usize;
+    // Round up base to the nearest page boundary — this is the guard page VA.
+    let guard_va = (base + PAGE - 1) & !(PAGE - 1);
+    // Usable kernel stack lives immediately above the guard page.
+    let stack_top   = guard_va + PAGE + KERNEL_STACK_SIZE;
+    let initial_rsp = stack_top - 64; // 64 % 16 == 0 → 16-byte aligned
+
+    // Capture the physical frame backing the guard page so we can restore
+    // the mapping in sweep_dead before the Vec is dropped.
+    let guard_phys = crate::vmm::query_page(crate::vmm::VirtAddr(guard_va as u64))
+        .expect("spawn_kernel_task: guard page not mapped");
+    // Clear the PTE — the physical frame is NOT freed.
+    crate::vmm::unmap_page(crate::vmm::VirtAddr(guard_va as u64));
 
     // Layout: 8 × u64 slots from initial_rsp upward (see module doc).
+    // Vec is zeroed so r15..rbp are already 0; only rip and padding need writing.
     unsafe {
         let p = initial_rsp as *mut u64;
-        p.add(0).write(0);              // r15
-        p.add(1).write(0);              // r14
-        p.add(2).write(0);              // r13
-        p.add(3).write(0);              // r12
-        p.add(4).write(0);              // rbx
-        p.add(5).write(0);              // rbp
         p.add(6).write(entry as u64);   // rip — popped by `ret`
-        p.add(7).write(0);              // padding
+        // p.add(7) is padding, already 0
     }
 
     let sched = unsafe { get_sched() };
@@ -192,8 +221,12 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
         context:        TaskContext { rsp: initial_rsp as u64 },
         cap_table:      crate::cap::CapabilityTable::new(),
         _stack:         stack,
+        _stack_top:     stack_top as u64,
+        _guard_page:    Some((guard_va as u64, guard_phys)),
         entry_point:    None,
         user_stack_top: None,
+        page_table:     None,
+        vma_list:       Vec::new(),
     }));
 
     id
@@ -201,17 +234,48 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
+/// Load `cr3` with the given page table, or the kernel PML4 when `None`.
+///
+/// Must be called immediately before `switch_context` so that the incoming
+/// task executes with its own address space from the very first instruction.
+#[inline]
+fn switch_cr3(page_table: Option<u64>) {
+    let cr3 = page_table.unwrap_or_else(|| crate::vmm::kernel_pml4().as_u64());
+    unsafe {
+        core::arch::asm!(
+            "mov cr3, {cr3}",
+            cr3 = in(reg) cr3,
+            options(nostack),
+        );
+    }
+}
+
 /// Remove all Dead tasks from the queue, adjusting `current` accordingly.
 /// Must be called when the current task is Running (never Dead).
 fn sweep_dead(sched: &mut Scheduler) {
     let mut i = 0;
     while i < sched.tasks.len() {
         if sched.tasks[i].state == TaskState::Dead {
+            // Free the per-process page table (and all mapped user frames)
+            // before dropping the task.  The current CR3 is the running
+            // task's page table, not this dead task's, so it is safe to free.
+            if let Some(pml4) = sched.tasks[i].page_table {
+                crate::vmm::free_user_page_table(crate::pmm::PhysAddr(pml4));
+            }
+            // Restore the guard page PTE before dropping the kernel stack Vec.
+            // The physical frame was never freed — just unmapped — so we can
+            // re-establish the mapping so the heap free-list can write safely.
+            if let Some((guard_va, guard_phys)) = sched.tasks[i]._guard_page {
+                crate::vmm::map_page(
+                    crate::vmm::VirtAddr(guard_va),
+                    guard_phys,
+                    crate::vmm::PageFlags::KERNEL_RW,
+                );
+            }
             sched.tasks.remove(i);
             if i < sched.current {
                 sched.current -= 1;
             }
-            // don't advance i — the element at i is now the next task
         } else {
             i += 1;
         }
@@ -249,6 +313,7 @@ pub fn yield_task() {
     sched.tasks[next].state    = TaskState::Running;
     sched.current              = next;
 
+    switch_cr3(sched.tasks[next].page_table);
     // After this call returns we are back in `current`'s context.
     unsafe { switch_context(from_ctx, to_ctx); }
     // Re-enable interrupts: if we were switched to from a timer ISR context
@@ -284,6 +349,7 @@ pub fn task_exit() -> ! {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
+    switch_cr3(sched.tasks[next].page_table);
     unsafe { switch_context(from_ctx, to_ctx); }
 
     unreachable!("task_exit: returned from switch_context")
@@ -328,16 +394,25 @@ pub fn current_task_id() -> TaskId {
 ///
 /// The task is enqueued as Ready but does not run until the caller yields.
 pub fn spawn_userspace_task(
-    entry:      VirtAddr,
-    stack_top:  VirtAddr,
-    caps:       &[crate::cap::CapHandle],
-    trampoline: fn() -> !,
+    entry:       VirtAddr,
+    stack_top:   VirtAddr,
+    caps:        &[crate::cap::CapHandle],
+    trampoline:  fn() -> !,
+    page_table:  u64,
 ) -> TaskId {
-    let mut stack = Vec::with_capacity(KERNEL_STACK_SIZE);
-    stack.resize(KERNEL_STACK_SIZE, 0u8);
+    const PAGE: usize = 4096;
 
-    let stack_base  = stack.as_ptr() as usize;
-    let initial_rsp = stack_base + KERNEL_STACK_SIZE - 64;
+    let mut stack = Vec::with_capacity(KERNEL_STACK_SIZE + 2 * PAGE);
+    stack.resize(KERNEL_STACK_SIZE + 2 * PAGE, 0u8);
+
+    let base        = stack.as_ptr() as usize;
+    let guard_va    = (base + PAGE - 1) & !(PAGE - 1);
+    let kstack_top  = guard_va + PAGE + KERNEL_STACK_SIZE;
+    let initial_rsp = kstack_top - 64;
+
+    let guard_phys = crate::vmm::query_page(crate::vmm::VirtAddr(guard_va as u64))
+        .expect("spawn_userspace_task: guard page not mapped");
+    crate::vmm::unmap_page(crate::vmm::VirtAddr(guard_va as u64));
 
     unsafe {
         let p = initial_rsp as *mut u64;
@@ -372,8 +447,12 @@ pub fn spawn_userspace_task(
         context:        TaskContext { rsp: initial_rsp as u64 },
         cap_table,
         _stack:         stack,
+        _stack_top:     kstack_top as u64,
+        _guard_page:    Some((guard_va as u64, guard_phys)),
         entry_point:    Some(entry),
         user_stack_top: Some(stack_top),
+        page_table:     Some(page_table),
+        vma_list:       Vec::new(),
     }));
 
     id
@@ -393,6 +472,13 @@ pub fn current_entry_and_stack() -> (VirtAddr, VirtAddr) {
     )
 }
 
+/// Return the physical address of the current task's PML4, or `None` if it
+/// is a kernel task sharing the global page table.
+pub fn current_page_table() -> Option<u64> {
+    let sched = unsafe { get_sched() };
+    sched.tasks[sched.current].page_table
+}
+
 /// Return a raw pointer to the capability table of the task with the given ID,
 /// or null if no such task exists.
 ///
@@ -409,6 +495,37 @@ pub fn cap_table_ptr(id: TaskId) -> *mut crate::cap::CapabilityTable {
     core::ptr::null_mut()
 }
 
+/// Record a new page-aligned VMA `[va, va+4096)` for the current task.
+///
+/// Returns `true` on success; `false` if the range overlaps an existing
+/// mapping (double-map attempt).  The list is kept sorted by `va_start`.
+pub fn vma_insert(va: u64) -> bool {
+    const PAGE: u64 = 0x1000;
+    let end = va + PAGE;
+    let sched = unsafe { get_sched() };
+    let vmas = &mut sched.tasks[sched.current].vma_list;
+    let pos = vmas.partition_point(|&(s, _)| s < va);
+    // Check overlap with the preceding range.
+    if pos > 0 && vmas[pos - 1].1 > va { return false; }
+    // Check overlap with the following range.
+    if pos < vmas.len() && vmas[pos].0 < end { return false; }
+    vmas.insert(pos, (va, end));
+    true
+}
+
+/// Remove the VMA whose `va_start == va` from the current task's list.
+///
+/// Returns `true` on success; `false` if no such mapping exists (invalid
+/// unmap attempt).
+pub fn vma_remove(va: u64) -> bool {
+    let sched = unsafe { get_sched() };
+    let vmas = &mut sched.tasks[sched.current].vma_list;
+    match vmas.binary_search_by_key(&va, |&(s, _)| s) {
+        Ok(pos) => { vmas.remove(pos); true }
+        Err(_)  => false,
+    }
+}
+
 /// Return the top of the current task's kernel stack.
 ///
 /// Returns 0 for the bootstrap task, which uses the existing boot stack and
@@ -417,12 +534,7 @@ pub fn cap_table_ptr(id: TaskId) -> *mut crate::cap::CapabilityTable {
 /// supported).
 pub fn current_kernel_stack_top() -> u64 {
     let sched = unsafe { get_sched() };
-    let task = &sched.tasks[sched.current];
-    if task._stack.is_empty() {
-        0
-    } else {
-        task._stack.as_ptr() as u64 + task._stack.len() as u64
-    }
+    sched.tasks[sched.current]._stack_top
 }
 
 /// Mark the current task `Blocked` and switch to the next ready task.
@@ -457,6 +569,7 @@ pub fn block_and_yield() {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
+    switch_cr3(sched.tasks[next].page_table);
     unsafe { switch_context(from_ctx, to_ctx); }
     // Resumed here when wake_task + a subsequent schedule picks us back up.
     unsafe { core::arch::asm!("sti", options(nostack)) };

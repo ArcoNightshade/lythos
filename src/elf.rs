@@ -37,6 +37,7 @@ extern crate alloc;
 use core::sync::atomic::{AtomicU64, Ordering};
 
 use crate::cap::CapHandle;
+use crate::pmm::PhysAddr;
 use crate::task::TaskId;
 use crate::vmm::{PageFlags, VirtAddr};
 
@@ -152,9 +153,15 @@ fn segment_flags(p_flags: u32) -> PageFlags {
     }
 }
 
-/// Load a single `PT_LOAD` segment: allocate frames, map them, copy file data,
-/// zero-fill any `p_memsz > p_filesz` remainder.
-fn load_segment(data: &[u8], phdr: &Elf64Phdr) -> Result<(), ElfError> {
+/// Load a single `PT_LOAD` segment into `user_pml4`.
+///
+/// All reads and writes go through the **physical** (identity-mapped) address
+/// of each frame so that this function works while the kernel PML4 is the
+/// active CR3 — the user PT is not yet loaded.  Page-aligned arithmetic is
+/// used throughout to avoid spilling into unmapped adjacent pages.  If a page
+/// was already mapped by an earlier overlapping segment the physical frame is
+/// reused and only the flags are upgraded.
+fn load_segment_into(data: &[u8], phdr: &Elf64Phdr, user_pml4: PhysAddr) -> Result<(), ElfError> {
     let file_off   = phdr.p_offset as usize;
     let file_size  = phdr.p_filesz as usize;
     let mem_size   = phdr.p_memsz  as usize;
@@ -164,94 +171,95 @@ fn load_segment(data: &[u8], phdr: &Elf64Phdr) -> Result<(), ElfError> {
     if file_off + file_size > data.len() { return Err(ElfError::SegmentOutOfBounds); }
     if mem_size == 0 { return Ok(()); }
 
-    // Number of 4 KiB pages needed.
-    let page_count = (mem_size + 0xFFF) / 0x1000;
-
-    // Map pages and copy/zero fill.
-    let mut bytes_copied = 0usize;
+    let vaddr_end  = vaddr_base + mem_size as u64;
+    let page_start = vaddr_base & !0xFFF;
+    let page_end   = (vaddr_end + 0xFFF) & !0xFFF;
+    let page_count = ((page_end - page_start) / 0x1000) as usize;
 
     for i in 0..page_count {
-        let frame = crate::pmm::alloc_frame()
-            .expect("elf::load_segment: out of physical frames");
+        let page_va = page_start + (i as u64) * 0x1000;
 
-        let virt = VirtAddr(vaddr_base + (i as u64) * 0x1000);
-        crate::vmm::map_page(virt, frame, flags);
-
-        // How many bytes of file data land on this page?
-        let page_va = virt.as_u64();
-        let seg_va  = vaddr_base;
-
-        // Byte offset within the segment of this page's start.
-        let seg_off = (i * 0x1000) as usize;
-        // Bytes from file to copy to this page.
-        let copy_src_start = file_off + seg_off;
-        let copy_len = if bytes_copied < file_size {
-            (file_size - bytes_copied).min(0x1000)
+        // Resolve or allocate the physical frame for this page.
+        let frame = if let Some(p) = crate::vmm::query_page_in(user_pml4, VirtAddr(page_va)) {
+            crate::vmm::update_page_flags_in(user_pml4, VirtAddr(page_va), flags);
+            p
         } else {
-            0
+            let f = crate::pmm::alloc_frame()
+                .expect("elf::load_segment_into: out of physical frames");
+            crate::vmm::map_page_in(user_pml4, VirtAddr(page_va), f, flags);
+            // Zero entirely through the identity map.
+            unsafe { core::ptr::write_bytes(f.as_u64() as *mut u8, 0, 0x1000); }
+            f
         };
 
-        // Write through the VA (kernel page table covers user VAs too).
-        let page_ptr = page_va as *mut u8;
-        unsafe {
-            if copy_len > 0 {
+        // Copy the file bytes for this page (if any) through the physical frame.
+        let seg_file_end  = vaddr_base + file_size as u64;
+        let copy_va_start = vaddr_base.max(page_va);
+        let copy_va_end   = seg_file_end.min(page_va + 0x1000);
+
+        if copy_va_start < copy_va_end {
+            let frame_off    = (copy_va_start - page_va) as usize;
+            let file_src_off = file_off + (copy_va_start - vaddr_base) as usize;
+            let copy_len     = (copy_va_end - copy_va_start) as usize;
+            unsafe {
                 core::ptr::copy_nonoverlapping(
-                    data.as_ptr().add(copy_src_start),
-                    page_ptr,
+                    data.as_ptr().add(file_src_off),
+                    (frame.as_u64() as *mut u8).add(frame_off),
                     copy_len,
                 );
             }
-            // Zero-fill the rest of the page (BSS padding or end-of-segment).
-            if copy_len < 0x1000 {
-                core::ptr::write_bytes(page_ptr.add(copy_len), 0, 0x1000 - copy_len);
-            }
         }
-        bytes_copied += copy_len;
-
-        let _ = (seg_va, seg_off); // suppress unused warnings
     }
     Ok(())
 }
 
-/// Allocate and map the user stack for one task.
-///
-/// Each call claims the next available slot from `NEXT_STACK_SLOT`, ensuring
-/// concurrent exec'd tasks never share stack virtual addresses.
+/// Allocate and map the user stack for one task into `user_pml4`.
 ///
 /// Slot layout (STACK_SLOT_PAGES pages wide):
 ///   slot_base + 0              — guard page (no USER bit → #PF on access)
 ///   slot_base + 4 KiB          — first usable stack page
 ///   slot_base + N × 4 KiB      — last usable stack page  (N = USER_STACK_PAGES)
 ///   slot_base + (N+1) × 4 KiB  — stack top (returned; gap page for next slot)
-fn alloc_user_stack() -> VirtAddr {
+///
+/// Returns `(stack_top_va, last_usable_page_phys)`.  The physical address is
+/// needed by `write_initial_stack_frame` to write the ABI frame through the
+/// identity map while the kernel PML4 is still active.
+fn alloc_user_stack_into(user_pml4: PhysAddr) -> (VirtAddr, PhysAddr) {
     let slot      = NEXT_STACK_SLOT.fetch_add(1, Ordering::Relaxed);
     let slot_base = STACK_GUARD_VA + slot * STACK_SLOT_PAGES * 0x1000;
 
-    // Guard page: present, kernel-only, NX — user access triggers #PF.
+    // Guard page: kernel-only, NX.
     let guard_frame = crate::pmm::alloc_frame()
-        .expect("elf::alloc_user_stack: out of frames for guard page");
-    crate::vmm::map_page(
+        .expect("elf::alloc_user_stack_into: out of frames for guard page");
+    crate::vmm::map_page_in(
+        user_pml4,
         VirtAddr(slot_base),
         guard_frame,
         PageFlags(PageFlags::PRESENT.0 | PageFlags::NX.0),
     );
+    unsafe { core::ptr::write_bytes(guard_frame.as_u64() as *mut u8, 0, 0x1000); }
 
     // Usable stack pages.
+    let mut last_frame = PhysAddr(0);
     for i in 1..=(USER_STACK_PAGES as u64) {
         let frame = crate::pmm::alloc_frame()
-            .expect("elf::alloc_user_stack: out of frames for stack");
-        crate::vmm::map_page(VirtAddr(slot_base + i * 0x1000), frame, PageFlags::USER_RW);
+            .expect("elf::alloc_user_stack_into: out of frames for stack");
+        crate::vmm::map_page_in(user_pml4, VirtAddr(slot_base + i * 0x1000), frame, PageFlags::USER_RW);
+        unsafe { core::ptr::write_bytes(frame.as_u64() as *mut u8, 0, 0x1000); }
+        if i == USER_STACK_PAGES as u64 { last_frame = frame; }
     }
 
-    // Stack top = one page past the last usable page.
-    VirtAddr(slot_base + (USER_STACK_PAGES as u64 + 1) * 0x1000)
+    let stack_top = VirtAddr(slot_base + (USER_STACK_PAGES as u64 + 1) * 0x1000);
+    (stack_top, last_frame)
 }
 
-/// Write the initial ABI stack frame below `stack_top`.  Returns the adjusted
-/// `rsp` that the process should start with.
+/// Write the initial ABI stack frame below `stack_top` through `last_page_phys`.
 ///
-/// Frame written (lowest address first, rsp points to argc):
+/// The stack pages are mapped in the user PT, which is not the active CR3
+/// during `exec`.  Writes go through the physical (identity-mapped) address
+/// so no page-table switch is required.
 ///
+/// Frame (lowest address first, rsp points to argc):
 /// ```text
 /// [rsp+0]   argc  = 0
 /// [rsp+8]   NULL  (argv end)
@@ -261,13 +269,10 @@ fn alloc_user_stack() -> VirtAddr {
 /// [rsp+40]  0     (AT_NULL type)
 /// [rsp+48]  0     (AT_NULL value)
 /// ```
-///
-/// Total frame: 56 bytes.  `rsp` is 16-byte aligned.
-fn write_initial_stack_frame(stack_top: VirtAddr) -> VirtAddr {
-    // Align down by 56 bytes, then round down to 16-byte boundary.
-    let rsp = (stack_top.as_u64() - 56) & !0xF;
-
-    let p = rsp as *mut u64;
+fn write_initial_stack_frame(stack_top: VirtAddr, last_page_phys: PhysAddr) -> VirtAddr {
+    let rsp         = (stack_top.as_u64() - 56) & !0xF;
+    let page_offset = rsp & 0xFFF;
+    let p           = (last_page_phys.as_u64() + page_offset) as *mut u64;
     unsafe {
         p.add(0).write(0);    // argc
         p.add(1).write(0);    // argv end (NULL)
@@ -321,27 +326,29 @@ pub fn exec(elf_data: &[u8], caps: &[CapHandle]) -> Result<TaskId, ElfError> {
     let phentsize = ehdr.e_phentsize as usize;
     let phnum     = ehdr.e_phnum     as usize;
 
-    // ── 2. Load PT_LOAD segments ──────────────────────────────────────────
+    // ── 2. Create per-process page table ─────────────────────────────────
+    let user_pml4 = crate::vmm::create_user_page_table();
+
+    // ── 3. Load PT_LOAD segments into the new page table ─────────────────
     for i in 0..phnum {
         let phdr = read_phdr(elf_data, phoff, phentsize, i)?;
         if phdr.p_type != PT_LOAD { continue; }
-        load_segment(elf_data, &phdr)?;
+        load_segment_into(elf_data, &phdr, user_pml4)?;
     }
 
-    // ── 3. User stack ─────────────────────────────────────────────────────
-    let stack_top = alloc_user_stack();
+    // ── 4. User stack ─────────────────────────────────────────────────────
+    let (stack_top, last_page_phys) = alloc_user_stack_into(user_pml4);
 
-    // ── 4. Initial stack frame ────────────────────────────────────────────
-    let initial_sp = write_initial_stack_frame(stack_top);
+    // ── 5. Initial stack frame (through physical address) ─────────────────
+    let initial_sp = write_initial_stack_frame(stack_top, last_page_phys);
 
-    // ── 5. Inherit capabilities ───────────────────────────────────────────
-    // We defer the cap table transfer into spawn_userspace_task so it can
-    // work on the newly created Task directly.
+    // ── 6. Spawn task with its own page table ─────────────────────────────
     let task_id = crate::task::spawn_userspace_task(
         VirtAddr(ehdr.e_entry),
         initial_sp,
         caps,
         exec_trampoline,
+        user_pml4.as_u64(),
     );
 
     Ok(task_id)

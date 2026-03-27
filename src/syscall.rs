@@ -58,6 +58,13 @@ pub const SYS_ROLLBACK:   u64 = 9;
 pub const SYS_EXEC:       u64 = 10;
 /// Write a UTF-8 string to the kernel serial console.  Debug aid only.
 pub const SYS_LOG:        u64 = 11;
+/// Send a message **and** transfer a capability over an IPC endpoint.
+/// a1=ipc_cap_handle, a2=msg_ptr, a3=msg_len, a4=cap_handle_to_send
+pub const SYS_IPC_SEND_CAP: u64 = 12;
+/// Receive a message **and** accept any in-flight capability from an endpoint.
+/// a1=ipc_cap_handle, a2=buf_ptr, a3=buf_len, a4=out_handle_ptr (user *mut u64)
+/// Returns bytes received; writes new CapHandle to *out_handle_ptr (u64::MAX if none).
+pub const SYS_IPC_RECV_CAP: u64 = 13;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -212,6 +219,55 @@ pub struct SyscallFrame {
     pub a6:  u64,   // R9
 }
 
+// ── SMAP state ────────────────────────────────────────────────────────────────
+
+/// Set to `true` by `init()` when SMAP is detected and CR4.SMAP is enabled.
+/// Consulted by `with_user_access` to gate STAC/CLAC emission — those
+/// instructions are `#UD` on CPUs that don't advertise SMAP support.
+static SMAP_ENABLED: core::sync::atomic::AtomicBool =
+    core::sync::atomic::AtomicBool::new(false);
+
+/// Execute `f` inside a SMAP-safe window.
+///
+/// If SMAP is active this issues `stac` (sets AC, allowing kernel access to
+/// user pages) before calling `f` and `clac` (clears AC) afterwards.  If
+/// SMAP is not active the call is a direct passthrough with no overhead.
+///
+/// # Safety
+/// `f` must only touch user memory that has already been validated by
+/// `valid_user_range`; the window must be as narrow as possible.
+#[inline]
+unsafe fn with_user_access<F, R>(f: F) -> R
+where
+    F: FnOnce() -> R,
+{
+    if SMAP_ENABLED.load(core::sync::atomic::Ordering::Relaxed) {
+        unsafe { core::arch::asm!("stac", options(nostack, preserves_flags)); }
+        let r = f();
+        unsafe { core::arch::asm!("clac", options(nostack, preserves_flags)); }
+        r
+    } else {
+        f()
+    }
+}
+
+// ── User-pointer validation ───────────────────────────────────────────────────
+
+/// Return `true` if `[ptr, ptr+len)` lies entirely in canonical user space.
+///
+/// Rejects: null pointers, arithmetic overflow, and addresses at or above the
+/// user/kernel split (`0x0000_8000_0000_0000`).  Zero-length ranges are
+/// accepted for any non-null pointer (no bytes are dereferenced).
+#[inline]
+fn valid_user_range(ptr: u64, len: u64) -> bool {
+    if ptr == 0 { return false; }
+    if len == 0 { return true; }
+    match ptr.checked_add(len) {
+        Some(end) => end <= 0x0000_8000_0000_0000,
+        None      => false,
+    }
+}
+
 // ── Syscall dispatch ──────────────────────────────────────────────────────────
 
 /// Called by `syscall_entry` with a pointer to the kernel-stack frame.
@@ -227,15 +283,78 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             crate::task::task_exit();
         }
         SYS_MMAP => {
-            let virt  = crate::vmm::VirtAddr(frame.a1);
-            let phys  = crate::pmm::PhysAddr(frame.a2);
-            let flags = crate::vmm::PageFlags(frame.a3);
-            crate::vmm::map_page(virt, phys, flags);
+            // Require page-aligned virtual address.
+            if frame.a1 & 0xFFF != 0 { return EINVAL; }
+
+            // Require a Memory capability with write access.
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOPERM; }
+            let table = unsafe { &*table_ptr };
+            if !table.has_kind_with_rights(
+                crate::cap::CapKind::Memory,
+                crate::cap::CapRights::WRITE,
+            ) {
+                return ENOPERM;
+            }
+
+            let virt = crate::vmm::VirtAddr(frame.a1);
+
+            // Reject double-map before touching page tables or the PMM.
+            if !crate::task::vma_insert(frame.a1) { return EINVAL; }
+
+            // Sanitize flags: keep only user-safe bits and force USER.
+            let allowed = crate::vmm::PageFlags::PRESENT.0
+                | crate::vmm::PageFlags::WRITABLE.0
+                | crate::vmm::PageFlags::USER.0
+                | crate::vmm::PageFlags::NX.0;
+            let flags = crate::vmm::PageFlags(
+                (frame.a3 & allowed) | crate::vmm::PageFlags::USER.0
+            );
+
+            // Allocate a fresh PMM frame (user cannot name a physical address).
+            let Some(phys) = crate::pmm::alloc_frame() else {
+                // Undo the VMA reservation we just made.
+                crate::task::vma_remove(frame.a1);
+                return EINVAL;
+            };
+
+            match crate::task::current_page_table() {
+                Some(pml4) => crate::vmm::map_page_in(
+                    crate::pmm::PhysAddr(pml4), virt, phys, flags
+                ),
+                None       => crate::vmm::map_page(virt, phys, flags),
+            }
             0
         }
         SYS_MUNMAP => {
+            // Require page-aligned virtual address.
+            if frame.a1 & 0xFFF != 0 { return EINVAL; }
+
+            // Reject unmaps for addresses this task never mapped.
+            if !crate::task::vma_remove(frame.a1) { return EINVAL; }
+
             let virt = crate::vmm::VirtAddr(frame.a1);
-            crate::vmm::unmap_page(virt);
+            match crate::task::current_page_table() {
+                Some(pml4) => {
+                    let pml4_phys = crate::pmm::PhysAddr(pml4);
+                    // Free the backing frame before clearing the PTE.
+                    if let Some(phys) = crate::vmm::query_page_in(pml4_phys, virt) {
+                        crate::pmm::free_frame(phys);
+                    }
+                    crate::vmm::unmap_page_in(pml4_phys, virt);
+                    // Invalidate local TLB and shoot down all other CPUs.
+                    unsafe {
+                        core::arch::asm!(
+                            "invlpg [{va}]",
+                            va = in(reg) virt.as_u64(),
+                            options(nostack, preserves_flags),
+                        );
+                    }
+                    crate::apic::send_tlb_shootdown_ipi();
+                }
+                None => crate::vmm::unmap_page(virt),
+            }
             0
         }
         SYS_CAP_GRANT => {
@@ -307,8 +426,9 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
         SYS_IPC_SEND => {
             // a1 = CapHandle, a2 = msg_ptr (user VA), a3 = msg_len
             let handle  = crate::cap::CapHandle(frame.a1);
-            let msg_ptr = frame.a2 as *const u8;
             let msg_len = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+            if !valid_user_range(frame.a2, msg_len as u64) { return EINVAL; }
+            let msg_ptr = frame.a2 as *const u8;
 
             let current_id = crate::task::current_task_id();
             let table_ptr  = crate::task::cap_table_ptr(current_id);
@@ -327,16 +447,16 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
                 Err(_) => return ENOCAP,
             };
 
-            // Borrow the message bytes from user space (no SMAP, user VA accessible).
-            let msg = unsafe { core::slice::from_raw_parts(msg_ptr, msg_len) };
+            let msg = unsafe { with_user_access(|| core::slice::from_raw_parts(msg_ptr, msg_len)) };
             crate::ipc::send(endpoint_idx, msg);
             0
         }
         SYS_IPC_RECV => {
             // a1 = CapHandle, a2 = buf_ptr (user VA), a3 = buf_len
             let handle  = crate::cap::CapHandle(frame.a1);
-            let buf_ptr = frame.a2 as *mut u8;
             let buf_len = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+            if !valid_user_range(frame.a2, buf_len as u64) { return EINVAL; }
+            let buf_ptr = frame.a2 as *mut u8;
 
             let current_id = crate::task::current_task_id();
             let table_ptr  = crate::task::cap_table_ptr(current_id);
@@ -355,12 +475,11 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
                 Err(_) => return ENOCAP,
             };
 
-            // Receive into a kernel-side buffer, then copy to user space.
             let mut buf = [0u8; crate::ipc::MSG_SIZE];
             let n = crate::ipc::recv(endpoint_idx, &mut buf);
-            unsafe {
+            unsafe { with_user_access(|| {
                 core::ptr::copy_nonoverlapping(buf.as_ptr(), buf_ptr, n.min(buf_len));
-            }
+            }) };
             n as u64
         }
         SYS_ROLLBACK => {
@@ -384,13 +503,17 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             extern crate alloc;
             use alloc::vec::Vec;
 
-            let elf_ptr  = frame.a1 as *const u8;
             let elf_len  = frame.a2 as usize;
-            let caps_ptr = frame.a3 as *const u64;
             let caps_len = frame.a4 as usize;
+            let caps_bytes = (caps_len as u64).saturating_mul(8);
+            if !valid_user_range(frame.a1, elf_len as u64)  { return EINVAL; }
+            if caps_len > 0 && !valid_user_range(frame.a3, caps_bytes) { return EINVAL; }
 
-            let elf_data = unsafe { core::slice::from_raw_parts(elf_ptr, elf_len) };
-            let raw_caps = unsafe { core::slice::from_raw_parts(caps_ptr, caps_len) };
+            let elf_ptr  = frame.a1 as *const u8;
+            let caps_ptr = frame.a3 as *const u64;
+
+            let elf_data = unsafe { with_user_access(|| core::slice::from_raw_parts(elf_ptr, elf_len)) };
+            let raw_caps = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
             let caps: Vec<crate::cap::CapHandle> =
                 raw_caps.iter().map(|&h| crate::cap::CapHandle(h)).collect();
 
@@ -401,17 +524,98 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
         }
         SYS_LOG => {
             // a1 = ptr (user VA, *const u8), a2 = len
-            let ptr = frame.a1 as *const u8;
             let len = frame.a2 as usize;
             if len == 0 { return 0; }
             if len > 4096 { return EINVAL; }
-            // Must be in canonical user space (below the hole).
-            if frame.a1.saturating_add(frame.a2) > 0x0000_7FFF_FFFF_FFFFu64 { return EINVAL; }
-            let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
+            if !valid_user_range(frame.a1, len as u64) { return EINVAL; }
+            let bytes = unsafe { with_user_access(|| core::slice::from_raw_parts(frame.a1 as *const u8, len)) };
             if let Ok(s) = core::str::from_utf8(bytes) {
                 crate::kprint!("{}", s);
             }
             0
+        }
+        SYS_IPC_SEND_CAP => {
+            // a1=ipc_cap_handle, a2=msg_ptr, a3=msg_len, a4=cap_handle_to_send
+            let ipc_handle      = crate::cap::CapHandle(frame.a1);
+            let msg_len         = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+            if !valid_user_range(frame.a2, msg_len as u64) { return EINVAL; }
+            let msg_ptr         = frame.a2 as *const u8;
+            let send_cap_handle = crate::cap::CapHandle(frame.a4);
+
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &mut *table_ptr };
+
+            // Resolve the IPC endpoint (requires WRITE).
+            let endpoint_idx = match table.get(ipc_handle) {
+                Ok(c) if c.kind == crate::cap::CapKind::Ipc
+                      && c.rights.has(crate::cap::CapRights::WRITE) => {
+                    match crate::cap::get_object(c.object) {
+                        Some(crate::cap::KernelObject::Ipc { endpoint_idx }) => *endpoint_idx,
+                        _ => return ENOCAP,
+                    }
+                }
+                Ok(_)  => return ENOPERM,
+                Err(_) => return ENOCAP,
+            };
+
+            // Take (move) the capability out of the caller's table.
+            let cap = match table.take(send_cap_handle) {
+                Ok(c)  => c,
+                Err(_) => return ENOCAP,
+            };
+
+            let msg = unsafe { with_user_access(|| core::slice::from_raw_parts(msg_ptr, msg_len)) };
+            crate::ipc::send_cap(endpoint_idx, msg, cap);
+            0
+        }
+        SYS_IPC_RECV_CAP => {
+            // a1=ipc_cap_handle, a2=buf_ptr, a3=buf_len, a4=out_handle_ptr (*mut u64)
+            let ipc_handle      = crate::cap::CapHandle(frame.a1);
+            let buf_len         = (frame.a3 as usize).min(crate::ipc::MSG_SIZE);
+            if !valid_user_range(frame.a2, buf_len as u64) { return EINVAL; }
+            // out_handle_ptr is optional (0 = ignored); validate only if provided.
+            if frame.a4 != 0 && !valid_user_range(frame.a4, 8) { return EINVAL; }
+            let buf_ptr         = frame.a2 as *mut u8;
+            let out_handle_ptr  = frame.a4 as *mut u64;
+
+            let current_id = crate::task::current_task_id();
+            let table_ptr  = crate::task::cap_table_ptr(current_id);
+            if table_ptr.is_null() { return ENOCAP; }
+            let table = unsafe { &*table_ptr };
+
+            // Resolve the IPC endpoint (requires READ).
+            let endpoint_idx = match table.get(ipc_handle) {
+                Ok(c) if c.kind == crate::cap::CapKind::Ipc
+                      && c.rights.has(crate::cap::CapRights::READ) => {
+                    match crate::cap::get_object(c.object) {
+                        Some(crate::cap::KernelObject::Ipc { endpoint_idx }) => *endpoint_idx,
+                        _ => return ENOCAP,
+                    }
+                }
+                Ok(_)  => return ENOPERM,
+                Err(_) => return ENOCAP,
+            };
+
+            let mut buf = [0u8; crate::ipc::MSG_SIZE];
+            let (n, maybe_cap) = crate::ipc::recv_cap(endpoint_idx, &mut buf);
+            unsafe { with_user_access(|| {
+                core::ptr::copy_nonoverlapping(buf.as_ptr(), buf_ptr, n.min(buf_len));
+            }) };
+
+            // Insert the received capability (if any) and write the handle.
+            if out_handle_ptr as u64 != 0 {
+                let handle_val = if let Some(cap) = maybe_cap {
+                    let table_mut = unsafe { &mut *table_ptr };
+                    table_mut.insert(cap).0
+                } else {
+                    u64::MAX
+                };
+                unsafe { with_user_access(|| out_handle_ptr.write(handle_val)) };
+            }
+
+            n as u64
         }
         _ => ENOSYS,
     }
@@ -476,16 +680,17 @@ pub fn init() {
         // 4. FMASK: clear IF (bit 9) on syscall entry
         wrmsr(IA32_FMASK, 1 << 9);
 
-        // 5. Enable SMEP (CR4 bit 20) only if CPUID leaf 7 reports support.
-        // CPUID.07H:EBX[bit 7] = 1 means SMEP is available.
-        let smep_supported: bool;
+        // 5. Enable SMEP (CR4[20]) and SMAP (CR4[21]) if CPUID leaf 7 reports support.
+        // CPUID.07H:EBX[7]  = SMEP,  EBX[20] = SMAP.
+        // STAC/CLAC are only valid on CPUs that advertise SMAP; SMAP_ENABLED
+        // gates their emission in the syscall handlers.
         {
             let ebx: u32;
             core::arch::asm!(
                 "push rbx",
                 "xor eax, eax",
                 "xor ecx, ecx",
-                "mov eax, 7",  // leaf 7
+                "mov eax, 7",
                 "cpuid",
                 "mov {0:e}, ebx",
                 "pop rbx",
@@ -495,20 +700,14 @@ pub fn init() {
                 lateout("edx") _,
                 options(nostack),
             );
-            smep_supported = (ebx >> 7) & 1 == 1;
-        }
-        if smep_supported {
-            let cr4: u64;
-            core::arch::asm!(
-                "mov {0}, cr4",
-                out(reg) cr4,
-                options(nostack, nomem),
-            );
-            core::arch::asm!(
-                "mov cr4, {0}",
-                in(reg) cr4 | (1u64 << 20),
-                options(nostack, nomem),
-            );
+            let mut cr4: u64;
+            core::arch::asm!("mov {0}, cr4", out(reg) cr4, options(nostack, nomem));
+            if (ebx >> 7) & 1 == 1  { cr4 |= 1u64 << 20; } // SMEP
+            if (ebx >> 20) & 1 == 1 {
+                cr4 |= 1u64 << 21;                           // SMAP
+                SMAP_ENABLED.store(true, core::sync::atomic::Ordering::Relaxed);
+            }
+            core::arch::asm!("mov cr4, {0}", in(reg) cr4, options(nostack, nomem));
         }
     }
 }

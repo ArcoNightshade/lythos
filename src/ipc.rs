@@ -67,6 +67,11 @@ pub struct IpcEndpoint {
     pub sender_waiting: Option<crate::task::TaskId>,
     /// Task blocked waiting to receive (ring empty), if any.
     pub receiver_waiting: Option<crate::task::TaskId>,
+    /// A capability in transit from the last `send_cap` call.
+    ///
+    /// Only one cap can be in flight per endpoint at a time.  It is consumed
+    /// (and moved into the receiver's cap table) by `recv_cap`.
+    pub pending_cap: Option<crate::cap::Capability>,
 }
 
 impl IpcEndpoint {
@@ -126,6 +131,7 @@ pub fn create_endpoint() -> usize {
         kern_virt_u64: kern_virt.as_u64(),
         sender_waiting:   None,
         receiver_waiting: None,
+        pending_cap:      None,
     });
 
     idx
@@ -177,6 +183,79 @@ pub fn send(idx: usize, msg: &[u8]) {
         ep.sender_waiting = Some(current_id);
         crate::task::block_and_yield();
         // Woken — retry.
+    }
+}
+
+/// Like `send` but also attaches a capability to the endpoint.
+///
+/// The capability is moved out of the caller's hands and stored in
+/// `pending_cap`; the receiver retrieves it via `recv_cap`.  Only one
+/// capability can be in flight per endpoint at a time.
+pub fn send_cap(idx: usize, msg: &[u8], cap: crate::cap::Capability) {
+    let len = msg.len().min(MSG_SIZE);
+
+    loop {
+        let ep       = &mut ep_table()[idx];
+        let ring_ptr = ep.ring_ptr();
+
+        let head = unsafe { (*ring_ptr).head.load(Ordering::Acquire) };
+        let tail = unsafe { (*ring_ptr).tail.load(Ordering::Acquire) };
+        let used = tail.wrapping_sub(head) as usize;
+
+        if used < RING_CAPACITY {
+            let slot_off = (tail as usize % RING_CAPACITY) * MSG_SIZE;
+            unsafe {
+                let dst = (*ring_ptr).data.as_mut_ptr().add(slot_off);
+                core::ptr::copy_nonoverlapping(msg.as_ptr(), dst, len);
+                if len < MSG_SIZE {
+                    core::ptr::write_bytes(dst.add(len), 0, MSG_SIZE - len);
+                }
+                (*ring_ptr).tail.store(tail.wrapping_add(1), Ordering::Release);
+            }
+            ep.pending_cap = Some(cap);
+            if let Some(recv_id) = ep.receiver_waiting.take() {
+                crate::task::wake_task(recv_id);
+            }
+            return;
+        }
+
+        let current_id = crate::task::current_task_id();
+        ep.sender_waiting = Some(current_id);
+        crate::task::block_and_yield();
+    }
+}
+
+/// Like `recv` but also returns any capability attached by `send_cap`.
+///
+/// Returns `(bytes_received, Option<Capability>)`.  If no capability was
+/// attached the `Option` is `None`.
+pub fn recv_cap(idx: usize, buf: &mut [u8]) -> (usize, Option<crate::cap::Capability>) {
+    let out_len = buf.len().min(MSG_SIZE);
+
+    loop {
+        let ep       = &mut ep_table()[idx];
+        let ring_ptr = ep.ring_ptr();
+
+        let head = unsafe { (*ring_ptr).head.load(Ordering::Acquire) };
+        let tail = unsafe { (*ring_ptr).tail.load(Ordering::Acquire) };
+
+        if head != tail {
+            let slot_off = (head as usize % RING_CAPACITY) * MSG_SIZE;
+            unsafe {
+                let src = (*ring_ptr).data.as_ptr().add(slot_off);
+                core::ptr::copy_nonoverlapping(src, buf.as_mut_ptr(), out_len);
+                (*ring_ptr).head.store(head.wrapping_add(1), Ordering::Release);
+            }
+            let cap = ep.pending_cap.take();
+            if let Some(send_id) = ep.sender_waiting.take() {
+                crate::task::wake_task(send_id);
+            }
+            return (out_len, cap);
+        }
+
+        let current_id = crate::task::current_task_id();
+        ep.receiver_waiting = Some(current_id);
+        crate::task::block_and_yield();
     }
 }
 
