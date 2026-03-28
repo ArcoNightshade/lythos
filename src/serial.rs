@@ -46,12 +46,13 @@ unsafe fn inb(port: u16) -> u8 {
 pub const COM1: u16 = 0x3F8;
 
 // Register offsets from base port
-const OFF_THR:  u16 = 0; // Transmit Holding Register  (write, DLAB=0)
-const OFF_IER:  u16 = 1; // Interrupt Enable Register
-const OFF_FCR:  u16 = 2; // FIFO Control Register
-const OFF_LCR:  u16 = 3; // Line Control Register  (bit 7 = DLAB)
-const OFF_MCR:  u16 = 4; // Modem Control Register
-const OFF_LSR:  u16 = 5; // Line Status Register   (bit 5 = THR empty)
+const OFF_RBR:     u16 = 0; // Receive Buffer Register    (read,  DLAB=0)
+const OFF_THR:     u16 = 0; // Transmit Holding Register  (write, DLAB=0)
+const OFF_IER:     u16 = 1; // Interrupt Enable Register
+const OFF_FCR:     u16 = 2; // FIFO Control Register
+const OFF_LCR:     u16 = 3; // Line Control Register  (bit 7 = DLAB)
+const OFF_MCR:     u16 = 4; // Modem Control Register
+const OFF_LSR:     u16 = 5; // Line Status Register   (bit 5 = THR empty, bit 0 = DR)
 const OFF_DLAB_LO: u16 = 0; // Divisor Latch Low  (DLAB=1)
 const OFF_DLAB_HI: u16 = 1; // Divisor Latch High (DLAB=1)
 
@@ -74,6 +75,21 @@ impl SerialPort {
             outb(self.base + OFF_LCR,     0x03); // 8 data bits, no parity, 1 stop; clear DLAB
             outb(self.base + OFF_FCR,     0xC7); // enable FIFO, clear TX/RX, 14-byte threshold
             outb(self.base + OFF_MCR,     0x0B); // assert DTR + RTS
+        }
+    }
+
+    /// Try to read one byte from the receive FIFO without blocking.
+    ///
+    /// Returns `Some(byte)` if the Data Ready bit (LSR bit 0) is set, `None`
+    /// otherwise.  Call from a loop with `yield_task()` to implement a
+    /// blocking read without burning the CPU.
+    pub fn try_read_byte(&mut self) -> Option<u8> {
+        unsafe {
+            if inb(self.base + OFF_LSR) & 0x01 != 0 {
+                Some(inb(self.base + OFF_RBR))
+            } else {
+                None
+            }
         }
     }
 

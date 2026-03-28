@@ -18,19 +18,23 @@
 ///
 /// ## Stack layout at ring-3 entry
 ///
-/// The initial stack frame follows the System V AMD64 ABI for `_start`:
+/// The initial stack frame follows the System V AMD64 ABI for `_start`.
+/// String data for argv is placed immediately after the fixed table:
 ///
 /// ```text
-/// rsp → [0]   argc  = 0
-///        [8]   NULL  (end of argv)
-///        [16]  NULL  (end of envp)
-///        [24]  AT_PAGESZ (type = 6)
-///        [32]  4096
-///        [40]  AT_NULL (type = 0)
-///        [48]  0
+/// rsp+0                  argc
+/// rsp+8 .. rsp+8*(N+1)  argv[0..N-1]  (pointers into the string area below)
+/// rsp+8*(N+1)            NULL  (argv terminator)
+/// rsp+8*(N+2)            NULL  (envp terminator)
+/// rsp+8*(N+3)            6     (AT_PAGESZ type)
+/// rsp+8*(N+4)            4096  (AT_PAGESZ value)
+/// rsp+8*(N+5)            0     (AT_NULL type)
+/// rsp+8*(N+6)            0     (AT_NULL value)
+/// rsp+8*(N+7)            "argv[0]\0argv[1]\0…" (string data)
 /// ```
 ///
-/// `rsp` is 16-byte aligned at entry.
+/// `rsp` is 16-byte aligned at entry.  When no argv is passed (N=0) the
+/// layout matches the previous fixed 56-byte frame.
 
 extern crate alloc;
 
@@ -264,29 +268,62 @@ fn alloc_user_stack_into(user_pml4: PhysAddr) -> (VirtAddr, PhysAddr) {
 /// during `exec`.  Writes go through the physical (identity-mapped) address
 /// so no page-table switch is required.
 ///
-/// Frame (lowest address first, rsp points to argc):
-/// ```text
-/// [rsp+0]   argc  = 0
-/// [rsp+8]   NULL  (argv end)
-/// [rsp+16]  NULL  (envp end)
-/// [rsp+24]  6     (AT_PAGESZ type)
-/// [rsp+32]  4096  (AT_PAGESZ value)
-/// [rsp+40]  0     (AT_NULL type)
-/// [rsp+48]  0     (AT_NULL value)
-/// ```
-fn write_initial_stack_frame(stack_top: VirtAddr, last_page_phys: PhysAddr) -> VirtAddr {
-    let rsp         = (stack_top.as_u64() - 56) & !0xF;
-    let page_offset = rsp & 0xFFF;
-    let p           = (last_page_phys.as_u64() + page_offset) as *mut u64;
-    unsafe {
-        p.add(0).write(0);    // argc
-        p.add(1).write(0);    // argv end (NULL)
-        p.add(2).write(0);    // envp end (NULL)
-        p.add(3).write(6);    // AT_PAGESZ type
-        p.add(4).write(4096); // AT_PAGESZ value
-        p.add(5).write(0);    // AT_NULL type
-        p.add(6).write(0);    // AT_NULL value
+/// `argv` holds the command-line arguments.  When empty the frame is exactly
+/// 56 bytes (same as before), matching the previous behaviour.  All data must
+/// fit within a single 4 KiB page; panics if `argv` is too large.
+fn write_initial_stack_frame(
+    stack_top: VirtAddr,
+    last_page_phys: PhysAddr,
+    argv: &[&str],
+) -> VirtAddr {
+    let argc       = argv.len();
+    let str_bytes: usize = argv.iter().map(|s| s.len() + 1).sum();
+    // Fixed table: 1 (argc) + argc (ptrs) + 1 (argv NULL) + 1 (envp NULL) + 4 (auxv) = argc+7
+    let header_bytes = 8 * (argc + 7);
+    let total_bytes  = header_bytes + str_bytes;
+    assert!(total_bytes <= 4080, "write_initial_stack_frame: argv too large");
+
+    let rsp         = (stack_top.as_u64() - total_bytes as u64) & !0xF;
+    let page_offset = (rsp & 0xFFF) as usize;
+    // All writes go through the physical identity-mapped address of the last stack page.
+    let base        = (last_page_phys.as_u64() as usize + page_offset) as *mut u8;
+
+    let mut off = 0usize;
+
+    // Helper: write a u64 at byte offset `off` through the physical pointer.
+    macro_rules! w64 {
+        ($val:expr) => {{
+            unsafe { (base.add(off) as *mut u64).write_unaligned($val) };
+            off += 8;
+        }};
     }
+
+    w64!(argc as u64);                          // argc
+
+    // argv pointers — strings land just past the fixed table
+    let strs_va = rsp + header_bytes as u64;
+    let mut str_va = strs_va;
+    for s in argv {
+        w64!(str_va);
+        str_va += (s.len() + 1) as u64;
+    }
+
+    w64!(0);        // argv NULL terminator
+    w64!(0);        // envp NULL
+    w64!(6);        // AT_PAGESZ type
+    w64!(4096);     // AT_PAGESZ value
+    w64!(0);        // AT_NULL type
+    w64!(0);        // AT_NULL value
+
+    // String data
+    for s in argv {
+        let bytes = s.as_bytes();
+        unsafe { core::ptr::copy_nonoverlapping(bytes.as_ptr(), base.add(off), bytes.len()); }
+        off += bytes.len();
+        unsafe { base.add(off).write(0); }      // null terminator
+        off += 1;
+    }
+
     VirtAddr(rsp)
 }
 
@@ -317,7 +354,7 @@ fn exec_trampoline() -> ! {
 ///
 /// Returns the `TaskId` of the newly created task.  The task is enqueued in
 /// the scheduler but does not run until the caller yields.
-pub fn exec(elf_data: &[u8], caps: &[CapHandle]) -> Result<TaskId, ElfError> {
+pub fn exec(elf_data: &[u8], caps: &[CapHandle], argv: &[&str]) -> Result<TaskId, ElfError> {
     // ── 1. Parse header ───────────────────────────────────────────────────
     let ehdr = read_ehdr(elf_data)?;
 
@@ -345,7 +382,7 @@ pub fn exec(elf_data: &[u8], caps: &[CapHandle]) -> Result<TaskId, ElfError> {
     let (stack_top, last_page_phys) = alloc_user_stack_into(user_pml4);
 
     // ── 5. Initial stack frame (through physical address) ─────────────────
-    let initial_sp = write_initial_stack_frame(stack_top, last_page_phys);
+    let initial_sp = write_initial_stack_frame(stack_top, last_page_phys, argv);
 
     // ── 6. Spawn task with its own page table ─────────────────────────────
     let task_id = crate::task::spawn_userspace_task(

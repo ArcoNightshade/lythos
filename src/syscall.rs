@@ -65,6 +65,11 @@ pub const SYS_IPC_SEND_CAP: u64 = 12;
 /// a1=ipc_cap_handle, a2=buf_ptr, a3=buf_len, a4=out_handle_ptr (user *mut u64)
 /// Returns bytes received; writes new CapHandle to *out_handle_ptr (u64::MAX if none).
 pub const SYS_IPC_RECV_CAP: u64 = 13;
+/// Read bytes from the COM1 serial port into a user buffer.
+/// a1=buf_ptr (user VA), a2=buf_len.
+/// Blocks (yielding the CPU) until at least one byte is available, then
+/// reads as many bytes as are ready (up to buf_len).  Returns bytes read.
+pub const SYS_SERIAL_READ:  u64 = 14;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -505,32 +510,51 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             loop { unsafe { core::arch::asm!("hlt") }; }
         }
         SYS_EXEC => {
-            // a1 = elf_ptr  (user VA, *const u8)
-            // a2 = elf_len  (bytes)
-            // a3 = caps_ptr (user VA, *const u64 array of raw CapHandle values)
-            // a4 = caps_len (element count)
+            // a1 = elf_ptr   (user VA, *const u8)
+            // a2 = elf_len   (bytes)
+            // a3 = caps_ptr  (user VA, *const u64 array of raw CapHandle values)
+            // a4 = caps_len  (element count)
+            // a5 = argv_ptr  (user VA, flat null-terminated strings: "arg0\0arg1\0…")
+            // a6 = argv_bytes (total byte length of the argv buffer; 0 = no argv)
             extern crate alloc;
-            use alloc::vec::Vec;
+            use alloc::{string::String, vec::Vec};
 
-            let elf_len  = frame.a2 as usize;
-            let caps_len = frame.a4 as usize;
+            let elf_len    = frame.a2 as usize;
+            let caps_len   = frame.a4 as usize;
+            let argv_bytes = frame.a6 as usize;
             let caps_bytes = (caps_len as u64).saturating_mul(8);
-            if !valid_user_range(frame.a1, elf_len as u64)  { return EINVAL; }
+            if !valid_user_range(frame.a1, elf_len as u64) { return EINVAL; }
             if caps_len > 0 && !valid_user_range(frame.a3, caps_bytes) { return EINVAL; }
+            if argv_bytes > 0 && !valid_user_range(frame.a5, argv_bytes as u64) { return EINVAL; }
+            if argv_bytes > 4000 { return EINVAL; } // fits in one stack page
 
             let elf_ptr  = frame.a1 as *const u8;
             let caps_ptr = frame.a3 as *const u64;
 
             let elf_data = unsafe { with_user_access(|| core::slice::from_raw_parts(elf_ptr, elf_len)) };
-            // caps_ptr may be null when caps_len == 0 — avoid from_raw_parts on null.
+
             let caps: Vec<crate::cap::CapHandle> = if caps_len == 0 {
                 Vec::new()
             } else {
-                let raw_caps = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
-                raw_caps.iter().map(|&h| crate::cap::CapHandle(h)).collect()
+                let raw = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
+                raw.iter().map(|&h| crate::cap::CapHandle(h)).collect()
             };
 
-            match crate::elf::exec(elf_data, &caps) {
+            // Parse flat argv buffer: "arg0\0arg1\0…" → Vec<String>
+            let argv_owned: Vec<String> = if argv_bytes == 0 || frame.a5 == 0 {
+                Vec::new()
+            } else {
+                let buf = unsafe {
+                    with_user_access(|| core::slice::from_raw_parts(frame.a5 as *const u8, argv_bytes))
+                };
+                buf.split(|&b| b == 0)
+                   .filter(|s| !s.is_empty())
+                   .filter_map(|s| core::str::from_utf8(s).ok().map(String::from))
+                   .collect()
+            };
+            let argv_strs: Vec<&str> = argv_owned.iter().map(|s| s.as_str()).collect();
+
+            match crate::elf::exec(elf_data, &caps, &argv_strs) {
                 Ok(task_id) => task_id,
                 Err(_)      => EINVAL,
             }
