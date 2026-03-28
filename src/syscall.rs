@@ -285,6 +285,11 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
         SYS_MMAP => {
             // Require page-aligned virtual address.
             if frame.a1 & 0xFFF != 0 { return EINVAL; }
+            // Reject the 0→1 GiB identity-map range (2 MiB huge pages — walk_or_create
+            // would panic on the PS=1 entry) and all kernel-space addresses (above the
+            // canonical user/kernel split) to prevent corrupting shared kernel page
+            // table entries via the U/S propagation in walk_or_create.
+            if frame.a1 < 0x4000_0000 || frame.a1 >= 0x0000_8000_0000_0000 { return EINVAL; }
 
             // Require a Memory capability with write access.
             let current_id = crate::task::current_task_id();
@@ -328,8 +333,9 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             0
         }
         SYS_MUNMAP => {
-            // Require page-aligned virtual address.
+            // Require page-aligned virtual address in the user range.
             if frame.a1 & 0xFFF != 0 { return EINVAL; }
+            if frame.a1 < 0x4000_0000 || frame.a1 >= 0x0000_8000_0000_0000 { return EINVAL; }
 
             // Reject unmaps for addresses this task never mapped.
             if !crate::task::vma_remove(frame.a1) { return EINVAL; }
@@ -404,7 +410,10 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
         SYS_IPC_CREATE => {
             // Allocate a ring-buffer page and register an IPC endpoint.
             // Returns a capability handle (CapHandle.0) to the caller.
-            let endpoint_idx = crate::ipc::create_endpoint();
+            let endpoint_idx = match crate::ipc::create_endpoint() {
+                Some(idx) => idx,
+                None      => return EINVAL, // global endpoint cap reached
+            };
 
             let obj = crate::cap::create_object(
                 crate::cap::KernelObject::Ipc { endpoint_idx }
@@ -513,9 +522,13 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             let caps_ptr = frame.a3 as *const u64;
 
             let elf_data = unsafe { with_user_access(|| core::slice::from_raw_parts(elf_ptr, elf_len)) };
-            let raw_caps = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
-            let caps: Vec<crate::cap::CapHandle> =
-                raw_caps.iter().map(|&h| crate::cap::CapHandle(h)).collect();
+            // caps_ptr may be null when caps_len == 0 — avoid from_raw_parts on null.
+            let caps: Vec<crate::cap::CapHandle> = if caps_len == 0 {
+                Vec::new()
+            } else {
+                let raw_caps = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
+                raw_caps.iter().map(|&h| crate::cap::CapHandle(h)).collect()
+            };
 
             match crate::elf::exec(elf_data, &caps) {
                 Ok(task_id) => task_id,

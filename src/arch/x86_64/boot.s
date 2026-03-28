@@ -65,7 +65,8 @@ _start:
     xor  %eax, %eax
     mov  $__bss_end,   %ecx
     sub  %edi, %ecx         /* byte count */
-    shr  $2,   %ecx         /* dword count */
+    add  $3,   %ecx         /* round up to next dword */
+    shr  $2,   %ecx         /* dword count (ceiling division) */
     rep  stosl
 
     /* Now write the saved Multiboot values into their (now-zeroed) slots. */

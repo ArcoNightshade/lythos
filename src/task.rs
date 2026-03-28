@@ -95,6 +95,12 @@ pub struct TaskContext {
 
 pub const KERNEL_STACK_SIZE: usize = 16 * 1024; // 16 KiB per task
 
+/// Magic value written at the bottom of every kernel stack (the first usable
+/// word above the guard page).  Checked at every yield / exit.  A corrupted
+/// canary means the stack overflowed far enough to smash the canary word
+/// without hitting the guard page — a shallow overflow the #PF wouldn't catch.
+const STACK_CANARY: u64 = 0x5AFE_C0DE_DEAD_BEEF;
+
 pub struct Task {
     pub id:        TaskId,
     pub state:     TaskState,
@@ -203,6 +209,11 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
     // Clear the PTE — the physical frame is NOT freed.
     crate::vmm::unmap_page(crate::vmm::VirtAddr(guard_va as u64));
 
+    // Write the stack canary at the first usable word above the guard page.
+    // The stack grows down, so this is the last word consumed before the guard
+    // page triggers a #PF.  The canary catches shallower overflows first.
+    unsafe { ((guard_va + PAGE) as *mut u64).write(STACK_CANARY); }
+
     // Layout: 8 × u64 slots from initial_rsp upward (see module doc).
     // Vec is zeroed so r15..rbp are already 0; only rip and padding need writing.
     unsafe {
@@ -234,12 +245,38 @@ pub fn spawn_kernel_task(entry: fn() -> !) -> TaskId {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
+/// Panic if `task`'s stack canary word has been overwritten.
+///
+/// No-op for the bootstrap task (no guard page).  Called at every
+/// `yield_task` / `block_and_yield` / `task_exit` and in `sweep_dead`.
+#[inline]
+fn check_stack_canary(task: &Task) {
+    if let Some((guard_va, _)) = task._guard_page {
+        let canary = unsafe { *((guard_va + 4096) as *const u64) };
+        if canary != STACK_CANARY {
+            panic!(
+                "kernel stack overflow: task {} canary at {:#x} is {:#x} (expected {:#x})",
+                task.id,
+                guard_va + 4096,
+                canary,
+                STACK_CANARY,
+            );
+        }
+    }
+}
+
 /// Load `cr3` with the given page table, or the kernel PML4 when `None`.
+///
+/// Also updates `SYSCALL_KERN_RSP` and `tss::RSP0` to `stack_top` when
+/// non-zero (i.e. the incoming task is a userspace task).  This must happen
+/// on every context switch so that when the incoming task next executes a
+/// `syscall` instruction the kernel stack is correctly identified regardless
+/// of what other tasks called `enter_userspace` in the meantime.
 ///
 /// Must be called immediately before `switch_context` so that the incoming
 /// task executes with its own address space from the very first instruction.
 #[inline]
-fn switch_cr3(page_table: Option<u64>) {
+fn switch_cr3(page_table: Option<u64>, stack_top: u64) {
     let cr3 = page_table.unwrap_or_else(|| crate::vmm::kernel_pml4().as_u64());
     unsafe {
         core::arch::asm!(
@@ -248,14 +285,40 @@ fn switch_cr3(page_table: Option<u64>) {
             options(nostack),
         );
     }
+    if stack_top != 0 {
+        crate::tss::set_rsp0(stack_top);
+        unsafe { crate::syscall::SYSCALL_KERN_RSP = stack_top; }
+    }
 }
 
 /// Remove all Dead tasks from the queue, adjusting `current` accordingly.
 /// Must be called when the current task is Running (never Dead).
 fn sweep_dead(sched: &mut Scheduler) {
+    // Save RFLAGS and disable interrupts for the entire sweep.  The APIC
+    // timer ISR calls yield_task → sweep_dead; if it fires while we are
+    // inside free_user_page_table (which iterates thousands of frames), the
+    // re-entrant sweep sees the same dead task with page_table still set and
+    // calls free_user_page_table a second time → double free.  CLI prevents
+    // this; POPFQ restores the original IF state when we are done.
+    let rflags: u64;
+    unsafe {
+        core::arch::asm!(
+            "pushfq",
+            "pop {f}",
+            "cli",
+            f = out(reg) rflags,
+            options(nostack),
+        );
+    }
+
     let mut i = 0;
     while i < sched.tasks.len() {
         if sched.tasks[i].state == TaskState::Dead {
+            // Last-chance canary check before the stack is freed.  Catches
+            // overflows in tasks that exit without ever calling yield_task
+            // (e.g. a task that overflows and then falls through to task_exit
+            // without any intervening yield).
+            check_stack_canary(&sched.tasks[i]);
             // Free the per-process page table (and all mapped user frames)
             // before dropping the task.  The current CR3 is the running
             // task's page table, not this dead task's, so it is safe to free.
@@ -280,6 +343,15 @@ fn sweep_dead(sched: &mut Scheduler) {
             i += 1;
         }
     }
+
+    unsafe {
+        core::arch::asm!(
+            "push {f}",
+            "popfq",
+            f = in(reg) rflags,
+            options(nostack),
+        );
+    }
 }
 
 // ── Public API (continued) ────────────────────────────────────────────────────
@@ -289,6 +361,7 @@ fn sweep_dead(sched: &mut Scheduler) {
 /// No-op if there are no other ready tasks.  Frees any Dead tasks first.
 pub fn yield_task() {
     let sched = unsafe { get_sched() };
+    check_stack_canary(&sched.tasks[sched.current]);
     sweep_dead(sched);
 
     let n       = sched.tasks.len();
@@ -313,7 +386,7 @@ pub fn yield_task() {
     sched.tasks[next].state    = TaskState::Running;
     sched.current              = next;
 
-    switch_cr3(sched.tasks[next].page_table);
+    switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     // After this call returns we are back in `current`'s context.
     unsafe { switch_context(from_ctx, to_ctx); }
     // Re-enable interrupts: if we were switched to from a timer ISR context
@@ -325,6 +398,7 @@ pub fn yield_task() {
 /// and never returns.  If no other task is ready, halts the CPU.
 pub fn task_exit() -> ! {
     let sched = unsafe { get_sched() };
+    check_stack_canary(&sched.tasks[sched.current]);
     let current = sched.current;
 
     sched.tasks[current].state = TaskState::Dead;
@@ -349,7 +423,7 @@ pub fn task_exit() -> ! {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
-    switch_cr3(sched.tasks[next].page_table);
+    switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     unsafe { switch_context(from_ctx, to_ctx); }
 
     unreachable!("task_exit: returned from switch_context")
@@ -413,6 +487,9 @@ pub fn spawn_userspace_task(
     let guard_phys = crate::vmm::query_page(crate::vmm::VirtAddr(guard_va as u64))
         .expect("spawn_userspace_task: guard page not mapped");
     crate::vmm::unmap_page(crate::vmm::VirtAddr(guard_va as u64));
+
+    // Stack canary at the first usable word above the guard page.
+    unsafe { ((guard_va + PAGE) as *mut u64).write(STACK_CANARY); }
 
     unsafe {
         let p = initial_rsp as *mut u64;
@@ -544,6 +621,7 @@ pub fn current_kernel_stack_top() -> u64 {
 /// well-formed system where the waker is still running).
 pub fn block_and_yield() {
     let sched = unsafe { get_sched() };
+    check_stack_canary(&sched.tasks[sched.current]);
     sweep_dead(sched);
 
     let current = sched.current;
@@ -569,7 +647,7 @@ pub fn block_and_yield() {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
-    switch_cr3(sched.tasks[next].page_table);
+    switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     unsafe { switch_context(from_ctx, to_ctx); }
     // Resumed here when wake_task + a subsequent schedule picks us back up.
     unsafe { core::arch::asm!("sti", options(nostack)) };

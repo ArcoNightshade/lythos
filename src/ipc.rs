@@ -105,17 +105,26 @@ fn ep_table() -> &'static mut Vec<IpcEndpoint> {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+/// Maximum number of IPC endpoints that can exist simultaneously.
+///
+/// Each endpoint occupies one physical frame and one 4 KiB slot in the kernel
+/// IPC window (`0xFFFF_D000_0000_0000`).  The cap prevents a runaway caller
+/// from exhausting physical memory or overflowing the kernel VA window.
+pub const MAX_ENDPOINTS: usize = 1024;
+
 /// Create a new IPC endpoint.
 ///
 /// Allocates a physical page, maps it into the kernel IPC window, zeroes the
-/// ring buffer, and returns the endpoint index.  The caller is responsible for
-/// creating a `KernelObject::Ipc { endpoint_idx }` capability and mapping the
-/// physical page into the relevant user address spaces via `SYS_MMAP`.
-pub fn create_endpoint() -> usize {
+/// ring buffer, and returns the endpoint index.  Returns `None` if the global
+/// endpoint cap (`MAX_ENDPOINTS`) has been reached.  The caller is responsible
+/// for creating a `KernelObject::Ipc { endpoint_idx }` capability.
+pub fn create_endpoint() -> Option<usize> {
+    let table = ep_table();
+    if table.len() >= MAX_ENDPOINTS { return None; }
+
     let phys_page = crate::pmm::alloc_frame()
         .expect("ipc::create_endpoint: out of physical frames");
 
-    let table = ep_table();
     let idx = table.len();
     let kern_virt = crate::vmm::VirtAddr(IPC_KERN_BASE + (idx as u64) * 4096);
 
@@ -134,7 +143,7 @@ pub fn create_endpoint() -> usize {
         pending_cap:      None,
     });
 
-    idx
+    Some(idx)
 }
 
 /// Return the physical address of endpoint `idx`'s shared page.
