@@ -307,7 +307,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // full exec path: ELF parser → segment mapping → stack allocation →
     // ABI stack frame → exec_trampoline → ring-3 entry.
     // The task exits via SYS_TASK_EXIT, returning control to kmain.
-    elf::exec(elf::SMOKE_ELF, &[])
+    elf::exec(elf::SMOKE_ELF, &[], &[])
         .expect("elf smoke-test: exec failed");
     task::yield_task();
     kprintln!("[elf] smoke-test passed");
@@ -349,7 +349,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // can read from it during cap inheritance.
     task::set_bootstrap_cap_table(kmain_caps);
 
-    elf::exec(elf::LYTHD_ELF, &[mem_cap, rollback_cap, boot_cap])
+    elf::exec(elf::LYTHD_ELF, &[mem_cap, rollback_cap, boot_cap], &[])
         .expect("lythd bootstrap: exec failed");
 
     kprintln!("[boot] lythd launched — entering scheduler");
@@ -408,9 +408,9 @@ fn core_smoke() {
         // Spawn receiver first — it will block on the empty ring.
         // Spawn sender second — it sends one message and exits.
         // Both inherit ipc_cap as handle 0 in their respective tables.
-        let recv_id = elf::exec(elf::IPC_RECEIVER_ELF, &[ipc_cap])
+        let recv_id = elf::exec(elf::IPC_RECEIVER_ELF, &[ipc_cap], &[])
             .expect("step14: receiver exec failed");
-        let send_id = elf::exec(elf::IPC_SENDER_ELF, &[ipc_cap])
+        let send_id = elf::exec(elf::IPC_SENDER_ELF, &[ipc_cap], &[])
             .expect("step14: sender exec failed");
 
         // Yield until both tasks are reaped (or 500 ms timeout).
@@ -495,7 +495,7 @@ fn core_smoke() {
         // Pass the bootstrap task's Memory cap (handle 0 = mem_cap) so the
         // exec'd task satisfies the SYS_MMAP has_kind_with_rights check.
         let mem_cap_h = cap::CapHandle(0);
-        let mmap_task = elf::exec(elf::MMAP_TEST_ELF, &[mem_cap_h])
+        let mmap_task = elf::exec(elf::MMAP_TEST_ELF, &[mem_cap_h], &[])
             .expect("MMAP test: exec failed");
         let deadline = apic::ticks() + 500;
         while apic::ticks() < deadline && task::task_exists(mmap_task) {
@@ -614,7 +614,7 @@ fn core_smoke() {
     // EXEC_FROM_USER_ELF calls SYS_EXEC with an embedded SMOKE_ELF copy,
     // exercises user-pointer validation and the full exec syscall path.
     {
-        let outer_task = elf::exec(elf::EXEC_FROM_USER_ELF, &[])
+        let outer_task = elf::exec(elf::EXEC_FROM_USER_ELF, &[], &[])
             .expect("SYS_EXEC from userspace: exec failed");
         let deadline = apic::ticks() + 500;
         while apic::ticks() < deadline && task::task_exists(outer_task) {

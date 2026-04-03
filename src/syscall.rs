@@ -531,12 +531,21 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             let elf_ptr  = frame.a1 as *const u8;
             let caps_ptr = frame.a3 as *const u64;
 
-            let elf_data = unsafe { with_user_access(|| core::slice::from_raw_parts(elf_ptr, elf_len)) };
+            // Copy ELF and caps into kernel-owned buffers while STAC is active.
+            // The user pointers must NOT be dereferenced outside with_user_access
+            // when SMAP is enabled.
+            let mut elf_buf = alloc::vec![0u8; elf_len];
+            unsafe { with_user_access(|| {
+                core::ptr::copy_nonoverlapping(elf_ptr, elf_buf.as_mut_ptr(), elf_len);
+            }) };
 
             let caps: Vec<crate::cap::CapHandle> = if caps_len == 0 {
                 Vec::new()
             } else {
-                let raw = unsafe { with_user_access(|| core::slice::from_raw_parts(caps_ptr, caps_len)) };
+                let mut raw = alloc::vec![0u64; caps_len];
+                unsafe { with_user_access(|| {
+                    core::ptr::copy_nonoverlapping(caps_ptr, raw.as_mut_ptr(), caps_len);
+                }) };
                 raw.iter().map(|&h| crate::cap::CapHandle(h)).collect()
             };
 
@@ -544,17 +553,22 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             let argv_owned: Vec<String> = if argv_bytes == 0 || frame.a5 == 0 {
                 Vec::new()
             } else {
-                let buf = unsafe {
-                    with_user_access(|| core::slice::from_raw_parts(frame.a5 as *const u8, argv_bytes))
-                };
-                buf.split(|&b| b == 0)
+                let mut argv_buf = alloc::vec![0u8; argv_bytes];
+                unsafe { with_user_access(|| {
+                    core::ptr::copy_nonoverlapping(
+                        frame.a5 as *const u8,
+                        argv_buf.as_mut_ptr(),
+                        argv_bytes,
+                    );
+                }) };
+                argv_buf.split(|&b| b == 0)
                    .filter(|s| !s.is_empty())
                    .filter_map(|s| core::str::from_utf8(s).ok().map(String::from))
                    .collect()
             };
             let argv_strs: Vec<&str> = argv_owned.iter().map(|s| s.as_str()).collect();
 
-            match crate::elf::exec(elf_data, &caps, &argv_strs) {
+            match crate::elf::exec(&elf_buf, &caps, &argv_strs) {
                 Ok(task_id) => task_id,
                 Err(_)      => EINVAL,
             }
