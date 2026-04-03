@@ -1,131 +1,140 @@
-# lythos / RaptorOS — build TODO
+# lythos / RaptorOS — next steps
 
-All kernel hardening items are complete. This list tracks what is needed
-to compile and boot a real lythd userspace process.
-
----
-
-## 1. RaptorOS `.cargo/config.toml`
-
-**What:** The RaptorOS workspace has no `.cargo/config.toml`, so `cargo build`
-uses the host target and ignores `userspace.ld`.
-
-**Fix:** Create `.cargo/config.toml` that sets the default build target to
-`x86_64-raptoros` and passes `-T userspace.ld` to the linker for all
-executables.
-
-**Files:** `RaptorOS/.cargo/config.toml`
+The kernel (lythos) and init process (lythd + lythdist) boot cleanly to
+`[integration] all checks passed`. This list tracks what comes next.
 
 ---
 
-## 2. `lythos-std` Cargo.toml + crate root
+## 1. Wrap SYS_IPC_SEND_CAP / SYS_IPC_RECV_CAP in lythos-std
 
-**What:** `lythos-std/Cargo.toml` has no `[lib]` section and `src/` is empty.
-`lythd` can't compile without it.
+**What:** The kernel implements SYS_IPC_SEND_CAP (12) and SYS_IPC_RECV_CAP (13)
+for transferring a capability handle alongside a 64-byte message. lythos-std
+exposes neither — every service handshake that delivers a cap must encode the
+handle as raw bytes and re-derive it.
 
-**Fix:** Update `Cargo.toml` (add `build-std` dependency chain markers), create
-`src/lib.rs` that wires together all sub-modules and sets `#![no_std]`.
+**Fix:** Add `sys_ipc_send_cap(ep_cap, msg, cap_to_send)` and
+`sys_ipc_recv_cap(ep_cap, buf) -> (usize, Option<u64>)` to
+`lythos-std/src/lib.rs`, then expose them on `ipc::Endpoint` as
+`send_with_cap` / `recv_with_cap`.
 
-**Files:** `RaptorOS/lythos-std/Cargo.toml`, `RaptorOS/lythos-std/src/lib.rs`
-
----
-
-## 3. Raw syscall layer
-
-**What:** Every `lythos-std` API ultimately calls a lythos syscall via the
-`syscall` instruction. Nothing works without this foundation.
-
-**Fix:** `src/syscall.rs` — one `unsafe` inline-asm function per syscall
-number (SYS_YIELD through SYS_IPC_RECV_CAP = 0–13), each returning a raw
-`u64`. Include the error-sentinel constants and a `SysError(u64)` newtype
-with `is_err()` and `into_result()`.
-
-**Files:** `RaptorOS/lythos-std/src/syscall.rs`
+**Files:** `RaptorOS/lythos-std/src/lib.rs`, `RaptorOS/lythos-std/src/ipc.rs`
 
 ---
 
-## 4. `BootInfo`
+## 2. lythdist: register itself with the service registry
 
-**What:** `lythd` calls `BootInfo::from_bytes(&frame)` on the 64-byte message
-received from the kernel boot endpoint.
+**What:** lythdist is spawned by lythd and starts its loop, but it never
+registers itself with lythd's service registry. Any future service that needs
+a memory capability has no standard way to discover lythdist.
 
-**Fix:** `src/boot.rs` — 64-byte layout struct, `from_bytes()` with signature
-check (`0xB007_1000_B007_1000`), `vendor_str()` (12-byte CPUID string).
+**Fix:** Before entering its main loop, lythdist should send a `KIND_REGISTER`
+message to the registry endpoint. The registry cap needs to be passed in as a
+fourth capability (handle 3) at spawn time.
 
-**Files:** `RaptorOS/lythos-std/src/boot.rs`
+**Changes:**
+- `lythd/src/main.rs` — pass `registry.as_raw()` as `caps[3]` when spawning
+  lythdist.
+- `lythdist/src/main.rs` — `const REGISTRY_CAP: u64 = 3;` at entry; send a
+  `Register` frame for the name `"lythdist"` before the main loop.
 
----
-
-## 5. `ipc::Endpoint`
-
-**What:** `lythd` calls `Endpoint::create()`, `Endpoint::from_raw()`,
-`endpoint.recv_frame()`, and `endpoint.send()`.
-
-**Fix:** `src/ipc.rs` — newtype wrapping a `u64` cap handle; `create()` calls
-SYS_IPC_CREATE; `send()` calls SYS_IPC_SEND; `recv_frame()` calls
-SYS_IPC_RECV and returns `Result<[u8; 64], SysError>`.
-
-**Files:** `RaptorOS/lythos-std/src/ipc.rs`
+**Files:** `RaptorOS/lythd/src/main.rs`, `RaptorOS/lythdist/src/main.rs`
 
 ---
 
-## 6. I/O: `println!` / `eprintln!` / `sys_log`
+## 3. Wrap SYS_SERIAL_READ in lythos-std
 
-**What:** `lythd` uses `println!` and `eprintln!` for all output, and
-`sys_log` directly in the panic handler. None of these exist yet.
+**What:** The kernel exposes SYS_SERIAL_READ (14) — a blocking read from
+COM1 that returns when at least one byte is available. lythos-std has no
+wrapper, so no userspace program can read keyboard or serial input.
 
-**Fix:** `src/io.rs` — `sys_log(s: &str)` calls SYS_LOG; `print!` /
-`println!` / `eprintln!` format into a stack buffer then call `sys_log`.
-Implement `core::fmt::Write` on a zero-size writer that flushes via SYS_LOG.
+**Fix:** Add `sys_serial_read(buf: &mut [u8]) -> Result<usize, SysError>` to
+`lythos-std/src/lib.rs`. Wire it into the existing `io::Read` trait so an
+`Endpoint::read()` call works with `BufReader`.
 
-**Files:** `RaptorOS/lythos-std/src/io.rs`
-
----
-
-## 7. Task utilities
-
-**What:** `lythd` calls `task::yield_now()`, `sys_task_exit()`, and
-`sys_rollback()`. The panic handler calls `sys_task_exit()` after rollback.
-
-**Fix:** `src/task.rs` — thin wrappers: `yield_now()` → SYS_YIELD,
-`sys_task_exit() -> !` → SYS_TASK_EXIT, `sys_rollback() -> !` → SYS_ROLLBACK,
-`spawn(elf: &[u8], caps: &[u64]) -> Result<u64, SysError>` → SYS_EXEC.
-
-**Files:** `RaptorOS/lythos-std/src/task.rs`
+**Files:** `RaptorOS/lythos-std/src/lib.rs`, `RaptorOS/lythos-std/src/io.rs`
 
 ---
 
-## 8. Global allocator
+## 4. Add SYS_CLOCK (APIC tick counter) to kernel + lythos-std
 
-**What:** `lythd` uses `Vec<Service>` which requires a `#[global_allocator]`.
-Without one, the crate won't link.
+**What:** `lythos-std/src/time.rs` has a comment: *"Instant is a stub — lythos
+has no wall-clock syscall yet."* The kernel already maintains an APIC tick
+counter (`apic::tick_count()`); it just isn't exposed via syscall.
 
-**Fix:** `src/allocator.rs` — bump allocator that calls SYS_MMAP to claim
-4 KiB pages on demand. `dealloc` is a no-op (lythd's service table only
-grows). Register with `#[global_allocator]`.
+**Fix (kernel):** Add `SYS_CLOCK = 15` to `src/syscall.rs`. The handler reads
+`apic::tick_count()` and returns it as a raw `u64`. Tick period is
+`1_000_000 / APIC_TIMER_HZ` nanoseconds (the calibrated value from
+`apic::init`).
 
-**Files:** `RaptorOS/lythos-std/src/allocator.rs`
+**Fix (lythos-std):** Implement `Instant` using `SYS_CLOCK`:
+`Instant::now()` calls `sys_clock()`, `elapsed()` returns a `Duration`.
+
+**Files:** `src/syscall.rs`, `src/apic.rs`, `RaptorOS/lythos-std/src/lib.rs`,
+`RaptorOS/lythos-std/src/time.rs`
 
 ---
 
-## 9. Build lythd + kernel integration test
+## 5. Implement lythmsg — inter-service message router
 
-**What:** Once items 1–8 are done, lythd should compile to a static ELF64.
-The kernel's `src/elf.rs` already has:
+**What:** lythd's boot comment mentions "lythdist, lythmsg" as the two core
+services. lythmsg doesn't exist yet. It should be a brokered publish/subscribe
+or request/reply router: services register named channels, clients send typed
+requests, lythmsg forwards them and delivers replies. This separates endpoint
+discovery from IPC.
 
-```rust
-pub static LYTHD_ELF: &[u8] =
-    include_bytes!("../../RaptorOS/target/x86_64-raptoros/release/lythd");
-```
+**Design sketch:**
+- Protocol: 64-byte frames, first byte = kind
+  (0=Subscribe, 1=Publish, 2=Request, 3=Reply, 4=Ack, 5=Nack)
+- lythmsg holds a name→endpoint map (like lythd's service table but for
+  message topics).
+- Services subscribe a local IPC endpoint to a named topic.
+- Senders publish to a topic; lythmsg fans out to all subscribers.
 
-**Fix:** Build RaptorOS (`cargo build --release` in `RaptorOS/`), then build
-lythos (`cargo build` in `lythos/`), boot under QEMU and verify output:
+**Fix:**
+- Create `RaptorOS/lythmsg/` crate (copy skeleton from lythdist).
+- Add to workspace `Cargo.toml`.
+- Add `static LYTHMSG_ELF` to `lythos/src/elf.rs` (via `include_bytes!`).
+- Spawn lythmsg from `lythd/src/main.rs` after lythdist.
+- Register `"lythmsg"` in the service registry.
 
-```
-[lythd] lythos init — X MiB free (N frames), cpu: GenuineIntel
-[lythd] service registry online (cap 3)
-[lythd] core services pending (lythdist, lythmsg not yet built)
-[lythd] entering supervisor loop
-```
+**Files:** `RaptorOS/lythmsg/` (new), `RaptorOS/Cargo.toml`,
+`lythos/src/elf.rs`, `RaptorOS/lythd/src/main.rs`
 
-**Files:** `RaptorOS/` (build), `lythos/` (rebuild + boot)
+---
+
+## 6. First real userspace application — lysh (lythos shell)
+
+**What:** All infrastructure is in place for a minimal interactive program:
+serial read (item 3), exec (SYS_EXEC), service registry (lythd), and
+capabilities. A simple REPL that reads a line from COM1, parses it as a
+command name + args, looks up the command binary via the service registry,
+and spawns it would exercise the entire stack end-to-end.
+
+**Scope (v0):**
+- Built-in commands only: `help`, `echo <text>`, `exit`.
+- Uses `sys_serial_read` + a line buffer.
+- Prints output via `println!`.
+- No filesystem (binaries embedded as statics, looked up by name).
+
+**Files:** `RaptorOS/lysh/` (new), `RaptorOS/Cargo.toml`,
+`RaptorOS/lythd/src/main.rs` (spawn lysh after lythdist)
+
+---
+
+## 7. Per-process memory isolation smoke test
+
+**What:** `exec` creates per-process PML4s, but there's no test verifying that
+one process cannot read another's pages. A malicious or buggy process writing
+to another's VA range should get a `#PF`, not silent success.
+
+**Fix:** Add a kernel-level smoke test in `src/elf.rs` or `src/main.rs`:
+1. Spawn process A at the standard VA (`0x1_0000_0000`).
+2. From a kernel thread, attempt to read A's VA without mapping it in the
+   kernel page table — should fault.
+3. Verify that spawning a second process B at the same VA maps *different*
+   physical frames (query both page tables).
+
+Log result as `[isolation] per-process page table check passed`.
+
+**Files:** `src/main.rs` (or `src/elf.rs`), possibly `src/vmm.rs`
+(`query_page_in` is already available)
