@@ -5,7 +5,7 @@ The kernel (lythos) and init process (lythd + lythdist) boot cleanly to
 
 ---
 
-## 1. Wrap SYS_IPC_SEND_CAP / SYS_IPC_RECV_CAP in lythos-std
+## ~~1. Wrap SYS_IPC_SEND_CAP / SYS_IPC_RECV_CAP in lythos-std~~ ✓ done
 
 **What:** The kernel implements SYS_IPC_SEND_CAP (12) and SYS_IPC_RECV_CAP (13)
 for transferring a capability handle alongside a 64-byte message. lythos-std
