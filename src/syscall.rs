@@ -38,6 +38,9 @@
 /// |  9 | SYS_ROLLBACK    |
 /// | 10 | SYS_EXEC        |
 /// | 11 | SYS_LOG         |
+/// | 12 | SYS_IPC_SEND_CAP |
+/// | 13 | SYS_IPC_RECV_CAP |
+/// | 14 | SYS_SERIAL_READ  |
 
 use core::arch::global_asm;
 
@@ -620,6 +623,37 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             let msg = unsafe { with_user_access(|| core::slice::from_raw_parts(msg_ptr, msg_len)) };
             crate::ipc::send_cap(endpoint_idx, msg, cap);
             0
+        }
+        SYS_SERIAL_READ => {
+            // a1 = buf_ptr (user VA, *mut u8), a2 = buf_len
+            let buf_len = (frame.a2 as usize).min(4096);
+            if buf_len == 0 { return 0; }
+            if !valid_user_range(frame.a1, buf_len as u64) { return EINVAL; }
+            let buf_ptr = frame.a1 as *mut u8;
+
+            let mut tmp = [0u8; 4096];
+            let mut n   = 0usize;
+
+            // Block (yielding the CPU) until the first byte arrives, then
+            // drain any additional bytes that are already in the FIFO.
+            // try_read_byte() is destructive, so we store each byte immediately.
+            loop {
+                match crate::serial::SERIAL.lock().try_read_byte() {
+                    Some(b) => { tmp[n] = b; n += 1; break; }
+                    None    => crate::task::yield_task(),
+                }
+            }
+            while n < buf_len {
+                match crate::serial::SERIAL.lock().try_read_byte() {
+                    Some(b) => { tmp[n] = b; n += 1; }
+                    None    => break,
+                }
+            }
+
+            unsafe { with_user_access(|| {
+                core::ptr::copy_nonoverlapping(tmp.as_ptr(), buf_ptr, n);
+            }) };
+            n as u64
         }
         SYS_IPC_RECV_CAP => {
             // a1=ipc_cap_handle, a2=buf_ptr, a3=buf_len, a4=out_handle_ptr (*mut u64)
