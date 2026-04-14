@@ -68,9 +68,13 @@ static APIC_ONLINE: core::sync::atomic::AtomicBool =
 // ── ISR assembly stubs ────────────────────────────────────────────────────────
 //
 // timer_isr_stub (vector 32):
-//   Saves all caller-saved registers, calls timer_interrupt_handler(), restores,
-//   iretq.  Callee-saved registers (rbp, rbx, r12-r15) are handled by
-//   switch_context inside yield_task if a context switch occurs.
+//   Saves ALL general-purpose registers before calling timer_interrupt_handler().
+//   All 15 GPRs must be saved because this interrupt can fire while user-mode
+//   (ring-3) code is running, where any register may hold a live value.
+//   If yield_task performs a context switch, switch_context saves/restores the
+//   *kernel* callee-saved registers on top of this frame — the user's callee-saved
+//   registers (rbx, rbp, r12-r15) stay safe beneath that frame and are popped here
+//   on the way back to iretq.
 //
 // spurious_isr_stub (vector 255):
 //   Intel SDM §10.9: spurious interrupts must NOT be acknowledged (no EOI).
@@ -90,7 +94,19 @@ timer_isr_stub:
     pushq  %r9
     pushq  %r10
     pushq  %r11
+    pushq  %rbx
+    pushq  %rbp
+    pushq  %r12
+    pushq  %r13
+    pushq  %r14
+    pushq  %r15
     call   timer_interrupt_handler
+    popq   %r15
+    popq   %r14
+    popq   %r13
+    popq   %r12
+    popq   %rbp
+    popq   %rbx
     popq   %r11
     popq   %r10
     popq   %r9

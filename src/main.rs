@@ -11,11 +11,11 @@ use core::panic::PanicInfo;
 pub mod apic;
 pub mod cap;
 pub mod elf;
-pub mod heap;
-pub mod ipc;
 mod exceptions;
 mod gdt;
+pub mod heap;
 mod idt;
+pub mod ipc;
 pub mod pmm;
 pub mod serial;
 pub mod syscall;
@@ -72,9 +72,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
 
     // ── Virtual memory manager ────────────────────────────────────────────
     vmm::init();
-    kprintln!(
-        "[vmm] paging active — identity 0–4MiB, higher-half kernel mapped"
-    );
+    kprintln!("[vmm] paging active — identity 0–4MiB, higher-half kernel mapped");
 
     // ── VMM smoke-test: map a scratch page, write to it, unmap it ─────────
     {
@@ -117,7 +115,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
             v.push(i);
         }
         assert_eq!(v.len(), 64, "heap smoke-test: Vec length mismatch");
-        assert_eq!(v[0], 0,  "heap smoke-test: Vec[0] mismatch");
+        assert_eq!(v[0], 0, "heap smoke-test: Vec[0] mismatch");
         assert_eq!(v[63], 63, "heap smoke-test: Vec[63] mismatch");
     }
     kprintln!("[heap] smoke-test passed");
@@ -147,7 +145,10 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     while apic::ticks() < t0 + 50 {
         unsafe { core::arch::asm!("hlt") };
     }
-    kprintln!("[apic] smoke-test passed — {} ticks elapsed", apic::ticks() - t0);
+    kprintln!(
+        "[apic] smoke-test passed — {} ticks elapsed",
+        apic::ticks() - t0
+    );
 
     // ── Syscall interface ─────────────────────────────────────────────────
     syscall::init();
@@ -156,24 +157,27 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // ── Capability system ─────────────────────────────────────────────────
     {
         let mut alice = cap::CapabilityTable::new();
-        let mut bob   = cap::CapabilityTable::new();
+        let mut bob = cap::CapabilityTable::new();
 
         // Create a physical memory object and give alice a root cap (all rights).
         let obj = cap::create_object(cap::KernelObject::Memory {
-            base_pa: 0x1000, frame_count: 1,
-        }).expect("cap smoke-test: create_object");
+            base_pa: 0x1000,
+            frame_count: 1,
+        })
+        .expect("cap smoke-test: create_object");
 
-        let h_alice = cap::create_root_cap(
-            &mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj,
-        );
+        let h_alice =
+            cap::create_root_cap(&mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj);
 
         // Alice grants Bob a read-only derived capability.
         let h_bob = cap::cap_grant(
-            &mut alice, h_alice,
+            &mut alice,
+            h_alice,
             99, // placeholder task id for bob
             &mut bob,
             cap::CapRights::READ,
-        ).expect("cap smoke-test: cap_grant");
+        )
+        .expect("cap smoke-test: cap_grant");
 
         // Bob's cap carries only READ — WRITE/GRANT/REVOKE were masked off.
         assert_eq!(
@@ -207,27 +211,38 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // ── Cascade-revoke smoke-test ─────────────────────────────────────────
     {
         let mut alice = cap::CapabilityTable::new();
-        let mut bob   = cap::CapabilityTable::new();
+        let mut bob = cap::CapabilityTable::new();
 
         let obj = cap::create_object(cap::KernelObject::Memory {
-            base_pa: 0x3000, frame_count: 1,
-        }).expect("cascade smoke: create_object");
+            base_pa: 0x3000,
+            frame_count: 1,
+        })
+        .expect("cascade smoke: create_object");
 
-        let h_alice = cap::create_root_cap(
-            &mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj,
-        );
-        let h_bob = cap::cap_grant(
-            &mut alice, h_alice, 99, &mut bob, cap::CapRights::READ,
-        ).expect("cascade smoke: cap_grant");
+        let h_alice =
+            cap::create_root_cap(&mut alice, cap::CapKind::Memory, cap::CapRights::ALL, obj);
+        let h_bob = cap::cap_grant(&mut alice, h_alice, 99, &mut bob, cap::CapRights::READ)
+            .expect("cascade smoke: cap_grant");
 
         // Alice cascade-revokes her root cap → bob's derived cap disappears too.
         let bob_ptr: *mut cap::CapabilityTable = &mut bob;
         cap::cap_cascade_revoke(&mut alice, h_alice, &mut |tid| {
-            if tid == 99 { bob_ptr } else { core::ptr::null_mut() }
-        }).expect("cascade smoke: revoke");
+            if tid == 99 {
+                bob_ptr
+            } else {
+                core::ptr::null_mut()
+            }
+        })
+        .expect("cascade smoke: revoke");
 
-        assert!(alice.get(h_alice).is_err(), "cascade: alice's cap should be gone");
-        assert!(bob.get(h_bob).is_err(),     "cascade: bob's derived cap should be gone");
+        assert!(
+            alice.get(h_alice).is_err(),
+            "cascade: alice's cap should be gone"
+        );
+        assert!(
+            bob.get(h_bob).is_err(),
+            "cascade: bob's derived cap should be gone"
+        );
     }
     kprintln!("[cap] cascade-revoke smoke-test passed");
 
@@ -297,7 +312,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
         use core::sync::atomic::Ordering;
         vmm::unmap_page(vmm::VirtAddr(0x0000_0001_0000_0000));
         vmm::unmap_page(vmm::VirtAddr(0x0000_0002_0000_0000));
-        pmm::free_frame(pmm::PhysAddr(SMOKE_CODE_PHYS .load(Ordering::Relaxed)));
+        pmm::free_frame(pmm::PhysAddr(SMOKE_CODE_PHYS.load(Ordering::Relaxed)));
         pmm::free_frame(pmm::PhysAddr(SMOKE_STACK_PHYS.load(Ordering::Relaxed)));
     }
     kprintln!("[syscall] userspace entry smoke-test passed");
@@ -307,8 +322,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // full exec path: ELF parser → segment mapping → stack allocation →
     // ABI stack frame → exec_trampoline → ring-3 entry.
     // The task exits via SYS_TASK_EXIT, returning control to kmain.
-    elf::exec(elf::SMOKE_ELF, &[], &[])
-        .expect("elf smoke-test: exec failed");
+    elf::exec(elf::SMOKE_ELF, &[], &[]).expect("elf smoke-test: exec failed");
     task::yield_task();
     kprintln!("[elf] smoke-test passed");
 
@@ -323,27 +337,45 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
 
     // Root memory capability: covers the full physical address space.
     let mem_obj = cap::create_object(cap::KernelObject::Memory {
-        base_pa:     0,
+        base_pa: 0,
         frame_count: pmm::free_frame_count() as u64,
-    }).expect("lythd bootstrap: mem cap OOM");
+    })
+    .expect("lythd bootstrap: mem cap OOM");
 
     // Rollback capability: exclusive privilege for lythd.
-    let rollback_obj = cap::create_object(cap::KernelObject::Rollback)
-        .expect("lythd bootstrap: rollback cap OOM");
+    let rollback_obj =
+        cap::create_object(cap::KernelObject::Rollback).expect("lythd bootstrap: rollback cap OOM");
 
     // Boot-info IPC endpoint: pre-load one BootInfo message before exec.
-    let boot_ep_idx  = ipc::create_endpoint().expect("create_endpoint");
+    let boot_ep_idx = ipc::create_endpoint().expect("create_endpoint");
     let boot_info_bytes = build_boot_info();
     ipc::send(boot_ep_idx, &boot_info_bytes);
 
-    let boot_ipc_obj = cap::create_object(cap::KernelObject::Ipc { endpoint_idx: boot_ep_idx })
-        .expect("lythd bootstrap: boot-info cap OOM");
+    let boot_ipc_obj = cap::create_object(cap::KernelObject::Ipc {
+        endpoint_idx: boot_ep_idx,
+    })
+    .expect("lythd bootstrap: boot-info cap OOM");
 
     // Insert all three caps into kmain's table so spawn_userspace_task can inherit them.
     let mut kmain_caps = cap::CapabilityTable::new();
-    let mem_cap      = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Memory,   cap::CapRights::ALL, mem_obj);
-    let rollback_cap = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Rollback, cap::CapRights::ALL, rollback_obj);
-    let boot_cap     = cap::create_root_cap(&mut kmain_caps, cap::CapKind::Ipc,      cap::CapRights::ALL, boot_ipc_obj);
+    let mem_cap = cap::create_root_cap(
+        &mut kmain_caps,
+        cap::CapKind::Memory,
+        cap::CapRights::ALL,
+        mem_obj,
+    );
+    let rollback_cap = cap::create_root_cap(
+        &mut kmain_caps,
+        cap::CapKind::Rollback,
+        cap::CapRights::ALL,
+        rollback_obj,
+    );
+    let boot_cap = cap::create_root_cap(
+        &mut kmain_caps,
+        cap::CapKind::Ipc,
+        cap::CapRights::ALL,
+        boot_ipc_obj,
+    );
 
     // Temporarily give kmain's bootstrap task this cap table so spawn_userspace_task
     // can read from it during cap inheritance.
@@ -364,7 +396,9 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     core_smoke();
 
     kprintln!("[integration] all checks passed");
-    loop { unsafe { core::arch::asm!("hlt") }; }
+    loop {
+        unsafe { core::arch::asm!("hlt") };
+    }
 }
 
 /// Core integration checklist, run in-kernel after the full boot sequence.
@@ -385,8 +419,8 @@ fn core_smoke() {
         let mut frame: syscall::SyscallFrame = unsafe { core::mem::zeroed() };
         frame.nr = syscall::SYS_CAP_GRANT;
         frame.a1 = 0xDEAD_BEEF_0000_0000u64; // bogus CapHandle
-        frame.a2 = 99u64;                     // target task id
-        frame.a3 = 0xFFu64;                   // rights mask
+        frame.a2 = 99u64; // target task id
+        frame.a3 = 0xFFu64; // rights mask
         let result = syscall::syscall_dispatch(&mut frame);
         assert_eq!(result, syscall::ENOCAP, "step14: ENOCAP check failed");
     }
@@ -397,8 +431,10 @@ fn core_smoke() {
     // so both exec'd tasks can inherit it.
     {
         let ep_idx = ipc::create_endpoint().expect("create_endpoint");
-        let ep_obj = cap::create_object(cap::KernelObject::Ipc { endpoint_idx: ep_idx })
-            .expect("step14: IPC ep cap OOM");
+        let ep_obj = cap::create_object(cap::KernelObject::Ipc {
+            endpoint_idx: ep_idx,
+        })
+        .expect("step14: IPC ep cap OOM");
         let ipc_cap = {
             // task 0 is the bootstrap (kmain) task; access its cap table directly.
             let tbl = unsafe { &mut *task::cap_table_ptr(0) };
@@ -410,13 +446,12 @@ fn core_smoke() {
         // Both inherit ipc_cap as handle 0 in their respective tables.
         let recv_id = elf::exec(elf::IPC_RECEIVER_ELF, &[ipc_cap], &[])
             .expect("step14: receiver exec failed");
-        let send_id = elf::exec(elf::IPC_SENDER_ELF, &[ipc_cap], &[])
-            .expect("step14: sender exec failed");
+        let send_id =
+            elf::exec(elf::IPC_SENDER_ELF, &[ipc_cap], &[]).expect("step14: sender exec failed");
 
         // Yield until both tasks are reaped (or 500 ms timeout).
         let deadline = apic::ticks() + 500;
-        while apic::ticks() < deadline
-            && (task::task_exists(recv_id) || task::task_exists(send_id))
+        while apic::ticks() < deadline && (task::task_exists(recv_id) || task::task_exists(send_id))
         {
             task::yield_task();
         }
@@ -437,8 +472,10 @@ fn core_smoke() {
     {
         // Create a fresh Memory cap in task 0's table for this test.
         let test_obj = cap::create_object(cap::KernelObject::Memory {
-            base_pa: 0xA000, frame_count: 1,
-        }).expect("cap syscall test: create object");
+            base_pa: 0xA000,
+            frame_count: 1,
+        })
+        .expect("cap syscall test: create object");
         let test_handle = {
             let tbl = unsafe { &mut *task::cap_table_ptr(0) };
             cap::create_root_cap(tbl, cap::CapKind::Memory, cap::CapRights::ALL, test_obj)
@@ -452,7 +489,8 @@ fn core_smoke() {
             frame.a2 = 0; // task 0 = self
             frame.a3 = cap::CapRights::READ.0 as u64;
             assert_eq!(
-                syscall::syscall_dispatch(&mut frame), syscall::EINVAL,
+                syscall::syscall_dispatch(&mut frame),
+                syscall::EINVAL,
                 "cap syscall: self-grant should be EINVAL",
             );
         }
@@ -465,7 +503,8 @@ fn core_smoke() {
             frame.a2 = 9999; // no such task
             frame.a3 = cap::CapRights::READ.0 as u64;
             assert_eq!(
-                syscall::syscall_dispatch(&mut frame), syscall::EINVAL,
+                syscall::syscall_dispatch(&mut frame),
+                syscall::EINVAL,
                 "cap syscall: grant to nonexistent task should be EINVAL",
             );
         }
@@ -476,14 +515,18 @@ fn core_smoke() {
             frame.nr = syscall::SYS_CAP_REVOKE;
             frame.a1 = test_handle.0;
             assert_eq!(
-                syscall::syscall_dispatch(&mut frame), 0,
+                syscall::syscall_dispatch(&mut frame),
+                0,
                 "cap syscall: revoke should return 0",
             );
         }
 
         // The cap must be gone after revoke.
         let tbl = unsafe { &*task::cap_table_ptr(0) };
-        assert!(tbl.get(test_handle).is_err(), "cap syscall: cap should be gone after revoke");
+        assert!(
+            tbl.get(test_handle).is_err(),
+            "cap syscall: cap should be gone after revoke"
+        );
     }
     kprintln!("[integration] cap grant/revoke syscall passed");
 
@@ -495,13 +538,16 @@ fn core_smoke() {
         // Pass the bootstrap task's Memory cap (handle 0 = mem_cap) so the
         // exec'd task satisfies the SYS_MMAP has_kind_with_rights check.
         let mem_cap_h = cap::CapHandle(0);
-        let mmap_task = elf::exec(elf::MMAP_TEST_ELF, &[mem_cap_h], &[])
-            .expect("MMAP test: exec failed");
+        let mmap_task =
+            elf::exec(elf::MMAP_TEST_ELF, &[mem_cap_h], &[]).expect("MMAP test: exec failed");
         let deadline = apic::ticks() + 500;
         while apic::ticks() < deadline && task::task_exists(mmap_task) {
             task::yield_task();
         }
-        assert!(!task::task_exists(mmap_task), "MMAP test: task did not complete");
+        assert!(
+            !task::task_exists(mmap_task),
+            "MMAP test: task did not complete"
+        );
     }
     kprintln!("[integration] SYS_MMAP/SYS_MUNMAP lifecycle passed");
 
@@ -511,19 +557,19 @@ fn core_smoke() {
     {
         use core::sync::atomic::{AtomicU8, AtomicUsize, Ordering as O};
 
-        static SCAP_EP:   AtomicUsize = AtomicUsize::new(usize::MAX);
-        static SCAP_DONE: AtomicU8   = AtomicU8::new(0);
+        static SCAP_EP: AtomicUsize = AtomicUsize::new(usize::MAX);
+        static SCAP_DONE: AtomicU8 = AtomicU8::new(0);
 
         fn scap_sender() -> ! {
             let ep = SCAP_EP.load(core::sync::atomic::Ordering::Relaxed);
             // Build a read-only Memory cap to transfer.
             let ko = cap::create_object(cap::KernelObject::Memory {
-                base_pa: 0x9000, frame_count: 1,
-            }).expect("scap sender: create object");
+                base_pa: 0x9000,
+                frame_count: 1,
+            })
+            .expect("scap sender: create object");
             let mut tmp = cap::CapabilityTable::new();
-            let h = cap::create_root_cap(
-                &mut tmp, cap::CapKind::Memory, cap::CapRights::READ, ko,
-            );
+            let h = cap::create_root_cap(&mut tmp, cap::CapKind::Memory, cap::CapRights::READ, ko);
             let the_cap = tmp.take(h).expect("scap sender: take cap");
 
             let msg = [0xCCu8; ipc::MSG_SIZE];
@@ -538,8 +584,12 @@ fn core_smoke() {
             assert_eq!(n, ipc::MSG_SIZE, "scap recv: wrong byte count");
             assert_eq!(buf[0], 0xCC, "scap recv: wrong payload");
             let received = maybe_cap.expect("scap recv: expected a capability");
-            assert_eq!(received.kind,   cap::CapKind::Memory,   "scap recv: wrong kind");
-            assert_eq!(received.rights, cap::CapRights::READ,   "scap recv: wrong rights");
+            assert_eq!(received.kind, cap::CapKind::Memory, "scap recv: wrong kind");
+            assert_eq!(
+                received.rights,
+                cap::CapRights::READ,
+                "scap recv: wrong rights"
+            );
             SCAP_DONE.store(1, core::sync::atomic::Ordering::Relaxed);
             task::task_exit();
         }
@@ -563,9 +613,9 @@ fn core_smoke() {
     {
         use core::sync::atomic::{AtomicU8, AtomicUsize, Ordering as O};
 
-        static TRI_EP1:  AtomicUsize = AtomicUsize::new(usize::MAX);
-        static TRI_EP2:  AtomicUsize = AtomicUsize::new(usize::MAX);
-        static TRI_DONE: AtomicU8   = AtomicU8::new(0); // bit 0 = A done, bit 1 = B done
+        static TRI_EP1: AtomicUsize = AtomicUsize::new(usize::MAX);
+        static TRI_EP2: AtomicUsize = AtomicUsize::new(usize::MAX);
+        static TRI_DONE: AtomicU8 = AtomicU8::new(0); // bit 0 = A done, bit 1 = B done
 
         fn tri_task_a() -> ! {
             let ep = TRI_EP1.load(core::sync::atomic::Ordering::Relaxed);
@@ -588,8 +638,10 @@ fn core_smoke() {
         fn tri_task_c() -> ! {
             let ep1 = TRI_EP1.load(core::sync::atomic::Ordering::Relaxed);
             let ep2 = TRI_EP2.load(core::sync::atomic::Ordering::Relaxed);
-            let mut m1 = [0u8; ipc::MSG_SIZE]; m1[0] = 0xAA;
-            let mut m2 = [0u8; ipc::MSG_SIZE]; m2[0] = 0xBB;
+            let mut m1 = [0u8; ipc::MSG_SIZE];
+            m1[0] = 0xAA;
+            let mut m2 = [0u8; ipc::MSG_SIZE];
+            m2[0] = 0xBB;
             ipc::send(ep1, &m1); // wakes task A
             ipc::send(ep2, &m2); // wakes task B
             task::task_exit();
@@ -638,7 +690,8 @@ fn core_smoke() {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(
-                syscall::syscall_dispatch(&mut f), syscall::ENOSYS,
+                syscall::syscall_dispatch(&mut f),
+                syscall::ENOSYS,
                 "fuzz: nr={nr} expected ENOSYS",
             );
         }
@@ -647,49 +700,73 @@ fn core_smoke() {
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_MMAP;
         f.a1 = 0x0000_0007_0000_0001; // not page-aligned
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MMAP unaligned VA");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MMAP unaligned VA"
+        );
 
         // SYS_MMAP: VA in 0→1 GiB identity-mapped huge-page range → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_MMAP;
         f.a1 = 0x0000_0000_0010_0000; // kernel load address — inside huge-page range
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MMAP VA in 0→1GiB range");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MMAP VA in 0→1GiB range"
+        );
         f.a1 = 0x0000_0000_3FFF_F000; // top of identity range, aligned
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MMAP VA at top of identity range");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MMAP VA at top of identity range"
+        );
 
         // SYS_MMAP: kernel-space VA → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_MMAP;
         f.a1 = 0xFFFF_C000_0000_0000; // kernel heap VA
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MMAP kernel-space VA");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MMAP kernel-space VA"
+        );
 
         // SYS_MUNMAP: unaligned VA → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_MUNMAP;
         f.a1 = 0x0000_0007_0000_0FFF;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MUNMAP unaligned VA");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MUNMAP unaligned VA"
+        );
 
         // SYS_MUNMAP: VA in 0→1 GiB range → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_MUNMAP;
         f.a1 = 0x0000_0000_1000_0000;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MUNMAP VA in 0→1GiB range");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MUNMAP VA in 0→1GiB range"
+        );
 
         // SYS_MUNMAP: kernel-space VA → EINVAL
         f.a1 = 0xFFFF_D000_0000_0000; // IPC kernel window
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MUNMAP kernel-space VA");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MUNMAP kernel-space VA"
+        );
 
         // SYS_MUNMAP: page-aligned user VA but not in vma_list → EINVAL
         f.a1 = 0x0000_0007_0000_0000;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_MUNMAP unmapped VA");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_MUNMAP unmapped VA"
+        );
 
         // Null msg_ptr for all buffer syscalls → EINVAL
         for nr in [
@@ -700,10 +777,13 @@ fn core_smoke() {
         ] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
-            f.a2 = 0;   // null ptr
-            f.a3 = 64;  // non-zero len
-            assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-                "fuzz: nr={nr} null buf_ptr");
+            f.a2 = 0; // null ptr
+            f.a3 = 64; // non-zero len
+            assert_eq!(
+                syscall::syscall_dispatch(&mut f),
+                syscall::EINVAL,
+                "fuzz: nr={nr} null buf_ptr"
+            );
         }
 
         // SYS_IPC_RECV_CAP: kernel-space out_handle_ptr → EINVAL
@@ -712,42 +792,60 @@ fn core_smoke() {
         f.a2 = 0x0000_0007_0000_0000; // valid user buf
         f.a3 = 64;
         f.a4 = 0xFFFF_8000_0000_0000; // kernel-space handle ptr
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_IPC_RECV_CAP kernel-space out_handle_ptr");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_IPC_RECV_CAP kernel-space out_handle_ptr"
+        );
 
         // SYS_EXEC: null elf_ptr → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_EXEC;
         f.a1 = 0;
         f.a2 = 128;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_EXEC null elf_ptr");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_EXEC null elf_ptr"
+        );
 
         // SYS_EXEC: elf_len overflow (checked_add wraps) → EINVAL
         f.a1 = 1;
         f.a2 = u64::MAX;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_EXEC overflow elf_len");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_EXEC overflow elf_len"
+        );
 
         // SYS_LOG: null ptr → EINVAL
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_LOG;
         f.a1 = 0;
         f.a2 = 10;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_LOG null ptr");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_LOG null ptr"
+        );
 
         // SYS_LOG: kernel-space ptr → EINVAL
         f.a1 = 0xFFFF_8000_0000_0000;
         f.a2 = 4;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_LOG kernel-space ptr");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_LOG kernel-space ptr"
+        );
 
         // SYS_LOG: oversized length → EINVAL
         f.a1 = 0x0000_0007_0000_0000;
         f.a2 = 0x1001;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::EINVAL,
-            "fuzz: SYS_LOG oversized len");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_LOG oversized len"
+        );
 
         // Bogus cap handles → ENOCAP
         f = unsafe { core::mem::zeroed() };
@@ -755,14 +853,20 @@ fn core_smoke() {
         f.a1 = 0xDEAD_BEEF_DEAD_BEEF;
         f.a2 = 99;
         f.a3 = 0xFF;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::ENOCAP,
-            "fuzz: SYS_CAP_GRANT bogus handle");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::ENOCAP,
+            "fuzz: SYS_CAP_GRANT bogus handle"
+        );
 
         f = unsafe { core::mem::zeroed() };
         f.nr = syscall::SYS_CAP_REVOKE;
         f.a1 = u64::MAX;
-        assert_eq!(syscall::syscall_dispatch(&mut f), syscall::ENOCAP,
-            "fuzz: SYS_CAP_REVOKE bogus handle");
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::ENOCAP,
+            "fuzz: SYS_CAP_REVOKE bogus handle"
+        );
     }
     kprintln!("[integration] syscall fuzz passed — all bad inputs rejected");
 }
@@ -774,11 +878,11 @@ fn core_smoke() {
 /// Passed to `lythd` via its boot-info IPC endpoint at handle 2.
 #[repr(C, packed)]
 struct BootInfo {
-    signature:   u64,       // 0xB007_1NFO_B007_1NFO
-    mem_bytes:   u64,       // total physical memory (free frames × 4096)
-    free_frames: u64,       // free physical frames at boot time
-    vendor:      [u8; 12],  // CPUID leaf 0 vendor string
-    _pad:        [u8; 28],  // zero-pad to 64 bytes
+    signature: u64,   // 0xB007_1NFO_B007_1NFO
+    mem_bytes: u64,   // total physical memory (free frames × 4096)
+    free_frames: u64, // free physical frames at boot time
+    vendor: [u8; 12], // CPUID leaf 0 vendor string
+    _pad: [u8; 28],   // zero-pad to 64 bytes
 }
 
 const _: () = assert!(core::mem::size_of::<BootInfo>() == ipc::MSG_SIZE);
@@ -787,11 +891,11 @@ const _: () = assert!(core::mem::size_of::<BootInfo>() == ipc::MSG_SIZE);
 fn build_boot_info() -> [u8; ipc::MSG_SIZE] {
     let free = pmm::free_frame_count() as u64;
     let info = BootInfo {
-        signature:   0xB007_1000_B007_1000,
-        mem_bytes:   free * 4096,
+        signature: 0xB007_1000_B007_1000,
+        mem_bytes: free * 4096,
         free_frames: free,
-        vendor:      cpuid_vendor(),
-        _pad:        [0u8; 28],
+        vendor: cpuid_vendor(),
+        _pad: [0u8; 28],
     };
     unsafe { core::mem::transmute(info) }
 }
@@ -826,7 +930,7 @@ fn cpuid_vendor() -> [u8; 12] {
 // Physical addresses of the two frames mapped by `userspace_smoke_task` into the
 // global kernel PML4.  Stored here so kmain can unmap and free them after the task
 // exits — otherwise they would leak permanently into the kernel page table.
-static SMOKE_CODE_PHYS:  core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
+static SMOKE_CODE_PHYS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 static SMOKE_STACK_PHYS: core::sync::atomic::AtomicU64 = core::sync::atomic::AtomicU64::new(0);
 
 /// Kernel task for the Step 10 userspace smoke-test.
@@ -844,27 +948,27 @@ fn userspace_smoke_task() -> ! {
     // Allocate and map a user-executable code page.
     let code_phys = pmm::alloc_frame().expect("userspace smoke: no frame for code");
     SMOKE_CODE_PHYS.store(code_phys.as_u64(), Ordering::Relaxed);
-    let code_va   = vmm::VirtAddr(0x0000_0001_0000_0000);
+    let code_va = vmm::VirtAddr(0x0000_0001_0000_0000);
     vmm::map_page(code_va, code_phys, vmm::PageFlags::USER_RX);
 
     // Write: `mov eax, 1` (SYS_TASK_EXIT); `syscall`
     unsafe {
         let p = code_va.as_u64() as *mut u8;
-        p.add(0).write(0xB8);                           // MOV EAX, imm32
-        p.add(1).write(syscall::SYS_TASK_EXIT as u8);   // imm32 byte 0
+        p.add(0).write(0xB8); // MOV EAX, imm32
+        p.add(1).write(syscall::SYS_TASK_EXIT as u8); // imm32 byte 0
         p.add(2).write(0x00);
         p.add(3).write(0x00);
         p.add(4).write(0x00);
-        p.add(5).write(0x0F);                           // SYSCALL (two-byte opcode)
+        p.add(5).write(0x0F); // SYSCALL (two-byte opcode)
         p.add(6).write(0x05);
     }
 
     // Allocate and map a user stack page.
     let stack_phys = pmm::alloc_frame().expect("userspace smoke: no frame for stack");
     SMOKE_STACK_PHYS.store(stack_phys.as_u64(), Ordering::Relaxed);
-    let stack_va   = vmm::VirtAddr(0x0000_0002_0000_0000);
+    let stack_va = vmm::VirtAddr(0x0000_0002_0000_0000);
     vmm::map_page(stack_va, stack_phys, vmm::PageFlags::USER_RW);
-    let stack_top  = vmm::VirtAddr(stack_va.as_u64() + 4096);
+    let stack_top = vmm::VirtAddr(stack_va.as_u64() + 4096);
 
     // Enter ring 3 — never returns (user code calls SYS_TASK_EXIT).
     syscall::enter_userspace(code_va, stack_top);
@@ -883,5 +987,7 @@ fn task_b() -> ! {
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     kprintln!("[PANIC] {}", info);
-    loop { unsafe { core::arch::asm!("hlt") }; }
+    loop {
+        unsafe { core::arch::asm!("hlt") };
+    }
 }
