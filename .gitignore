@@ -20,3 +20,8 @@ target/
 # Added by cargo
 
 /target
+
+# Build artifacts
+/lythos.iso
+/lythos.img
+/isodir/
