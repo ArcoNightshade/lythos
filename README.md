@@ -50,7 +50,7 @@ The kernel is being built in fourteen discrete steps. Steps 1–7 are complete.
                         │  └────────┘  └────────┘             │
                         │  ┌────────┐  ┌────────┐             │
                         │  │  GDT   │  │  IDT   │ ← Step 2    │
-                        │  └────────┘  └──────┘┘              │
+                        │  └────────┘  └────────┘             │
                         │  ┌──────────────────────────────┐   │
                         │  │  Boot stub (Multiboot2, ASM) │ ← Step 1
                         │  └──────────────────────────────┘   │
