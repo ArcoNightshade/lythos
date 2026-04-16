@@ -326,7 +326,14 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     task::yield_task();
     kprintln!("[elf] smoke-test passed");
 
-    // ── lythd bootstrap — Step 13 ─────────────────────────────────────────
+    // ── Core integration smoke tests ──────────────────────────────────────
+    //
+    // Run before spawning lythd so these kernel-level checks execute without
+    // any concurrent userspace tasks.  None of the checks require lythd.
+    core_smoke();
+    kprintln!("[integration] all checks passed");
+
+    // ── lythd bootstrap ───────────────────────────────────────────────────
     //
     // Build the initial capability set and exec lythd with it.
     //
@@ -385,32 +392,20 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
         .expect("lythd bootstrap: exec failed");
 
     kprintln!("[boot] lythd launched — entering scheduler");
-
-    // Yield to let lythd run its init sequence.  In the real system lythd
-    // never exits — it blocks on its service registry endpoint.
-    task::yield_task();
-
-    kprintln!("[boot] lythd init complete — running integration checks");
-
-    // ── Core integration smoke tests ──────────────────────────────────────
-    core_smoke();
-
-    kprintln!("[integration] all checks passed");
     loop {
         unsafe { core::arch::asm!("hlt") };
     }
 }
 
-/// Core integration checklist, run in-kernel after the full boot sequence.
+/// Core integration checklist.  Runs before lythd is spawned so all checks
+/// execute without concurrent userspace tasks.
 ///
 /// Checks verified here:
 ///   1. Boot completes without triple fault          (implicit — we reached this line)
-///   2. lythd ELF loaded and entered ring 3          (implicit — yield returned above)
-///   3. lythd consumed its boot-info cap             (implicit — SYS_IPC_RECV succeeded)
-///   4. IPC send/recv between two userspace tasks    (active test below)
-///   5. task_exit reaps correctly                    (active test below)
-///   6. Unauthorized cap access returns ENOCAP       (active test below)
-///   7. QEMU `-d int,cpu_reset` shows no faults      (manual — run: make qemu)
+///   2. IPC send/recv between two userspace tasks    (active test below)
+///   3. task_exit reaps correctly                    (active test below)
+///   4. Unauthorized cap access returns ENOCAP       (active test below)
+///   5. QEMU `-d int,cpu_reset` shows no faults      (manual — run: make qemu)
 fn core_smoke() {
     // ── Check 6: ENOCAP ──────────────────────────────────────────────────
     // Call syscall_dispatch directly with a handle index that's way out of
@@ -535,11 +530,19 @@ fn core_smoke() {
     // a sentinel, unmaps (freeing the frame), then exits.  The task has its
     // own page table; sweep_dead frees any remaining pages on exit.
     {
-        // Pass the bootstrap task's Memory cap (handle 0 = mem_cap) so the
-        // exec'd task satisfies the SYS_MMAP has_kind_with_rights check.
-        let mem_cap_h = cap::CapHandle(0);
+        // Create a fresh Memory cap for this test so core_smoke doesn't depend
+        // on task 0's cap table being pre-populated by the lythd bootstrap.
+        let mmap_mem_obj = cap::create_object(cap::KernelObject::Memory {
+            base_pa: 0,
+            frame_count: pmm::free_frame_count() as u64,
+        })
+        .expect("MMAP test: create mem obj");
+        let mmap_mem_cap = {
+            let tbl = unsafe { &mut *task::cap_table_ptr(0) };
+            cap::create_root_cap(tbl, cap::CapKind::Memory, cap::CapRights::ALL, mmap_mem_obj)
+        };
         let mmap_task =
-            elf::exec(elf::MMAP_TEST_ELF, &[mem_cap_h], &[]).expect("MMAP test: exec failed");
+            elf::exec(elf::MMAP_TEST_ELF, &[mmap_mem_cap], &[]).expect("MMAP test: exec failed");
         let deadline = apic::ticks() + 500;
         while apic::ticks() < deadline && task::task_exists(mmap_task) {
             task::yield_task();
@@ -685,8 +688,8 @@ fn core_smoke() {
     {
         let mut f: syscall::SyscallFrame = unsafe { core::mem::zeroed() };
 
-        // Unknown syscall numbers → ENOSYS
-        for nr in [14u64, 15, 100, 255, u64::MAX] {
+        // Unknown syscall numbers → ENOSYS (14 = SYS_SERIAL_READ is implemented; skip it)
+        for nr in [15u64, 100, 255, u64::MAX] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(
@@ -845,6 +848,26 @@ fn core_smoke() {
             syscall::syscall_dispatch(&mut f),
             syscall::EINVAL,
             "fuzz: SYS_LOG oversized len"
+        );
+
+        // SYS_SERIAL_READ: null buf_ptr → EINVAL
+        f = unsafe { core::mem::zeroed() };
+        f.nr = syscall::SYS_SERIAL_READ;
+        f.a1 = 0;     // null ptr
+        f.a2 = 16;    // non-zero len
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_SERIAL_READ null buf_ptr"
+        );
+
+        // SYS_SERIAL_READ: kernel-space buf_ptr → EINVAL
+        f.a1 = 0xFFFF_8000_0000_0000;
+        f.a2 = 16;
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            syscall::EINVAL,
+            "fuzz: SYS_SERIAL_READ kernel-space buf_ptr"
         );
 
         // Bogus cap handles → ENOCAP

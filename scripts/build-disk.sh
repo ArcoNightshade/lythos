@@ -50,6 +50,19 @@ fi
 # Creates and populates the disk image.  Must run as root on Linux.
 # Called either directly (native) or inside a Docker container.
 
+
+# Script-level variables for loop devices so the EXIT trap can see them
+# regardless of where in the call stack the trap fires.
+_DISK_LOOP=""
+_PART_LOOP=""
+
+_cleanup() {
+    umount /mnt 2>/dev/null || true
+    [[ -n "$_PART_LOOP" ]] && losetup -d "$_PART_LOOP" 2>/dev/null || true
+    [[ -n "$_DISK_LOOP" ]] && losetup -d "$_DISK_LOOP" 2>/dev/null || true
+}
+trap _cleanup EXIT
+
 assemble() {
     local img="$1" kernel="$2" grub_cfg="$3"
 
@@ -57,27 +70,29 @@ assemble() {
     dd if=/dev/zero of="$img" bs=1M count="$IMG_SIZE_MB" status=none
 
     echo "[build-disk] partitioning (MBR, btrfs partition at 1 MiB)..."
-    parted -s "$img" mklabel msdos
-    parted -s "$img" mkpart primary btrfs 1MiB 100%
-    parted -s "$img" set 1 boot on
+    # Redirect stderr to suppress "udevadm: not found" warnings from parted
+    # when running inside Docker where udev is absent.
+    parted -s "$img" mklabel msdos              2>/dev/null
+    parted -s "$img" mkpart primary btrfs 1MiB 100% 2>/dev/null
+    parted -s "$img" set 1 boot on              2>/dev/null
 
-    echo "[build-disk] attaching loop device..."
-    local loop part
-    loop=$(losetup --find --partscan --show "$img")
-    part="${loop}p1"
+    # Attach two loop devices: one for the whole disk (grub-install target) and
+    # one at the 1 MiB partition offset (btrfs format + mount target).
+    # This avoids depending on udev to create /dev/loopNp1 device nodes, which
+    # doesn't work inside Docker containers where udev is not running.
+    echo "[build-disk] attaching loop devices..."
+    _DISK_LOOP=$(losetup --find --show "$img")
+    _PART_LOOP=$(losetup --find --show \
+        --offset=1048576 \
+        --sizelimit=$(( (IMG_SIZE_MB - 1) * 1024 * 1024 )) \
+        "$img")
 
-    _cleanup() {
-        umount /mnt 2>/dev/null || true
-        losetup -d "$loop" 2>/dev/null || true
-    }
-    trap _cleanup EXIT
-
-    echo "[build-disk] formatting $part as btrfs..."
-    mkfs.btrfs -f -L lythos "$part" >/dev/null
+    echo "[build-disk] formatting $_PART_LOOP as btrfs..."
+    mkfs.btrfs -f -L lythos "$_PART_LOOP" >/dev/null
 
     echo "[build-disk] populating filesystem..."
     mkdir -p /mnt
-    mount "$part" /mnt
+    mount "$_PART_LOOP" /mnt
     mkdir -p /mnt/boot/grub
     cp "$kernel"   /mnt/boot/lythos
     cp "$grub_cfg" /mnt/boot/grub/grub.cfg
@@ -88,11 +103,11 @@ assemble() {
         --boot-directory=/mnt/boot \
         --modules="btrfs part_msdos" \
         --no-floppy \
-        "$loop"
+        "$_DISK_LOOP"
 
     umount /mnt
-    losetup -d "$loop"
-    trap - EXIT
+    losetup -d "$_PART_LOOP"; _PART_LOOP=""
+    losetup -d "$_DISK_LOOP"; _DISK_LOOP=""
 }
 
 # ── Dispatch: native Linux or Docker ─────────────────────────────────────────
@@ -127,7 +142,7 @@ elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
         bash -c "
             set -euo pipefail
             apt-get update -qq
-            apt-get install -y -qq grub-pc-bin grub-common btrfs-progs parted util-linux
+            apt-get install -y -qq grub-pc-bin grub-common grub2-common btrfs-progs parted util-linux
             $(declare -f assemble)
             assemble /out/lythos.img /kernel /grub.cfg
         "
@@ -137,7 +152,7 @@ else
         echo "error: Linux tools not found and Docker is not available."
         echo ""
         echo "  Option A (native Linux, requires root):"
-        echo "    sudo apt install grub-pc-bin grub-common btrfs-progs parted util-linux"
+        echo "    sudo apt install grub-pc-bin grub-common grub2-common btrfs-progs parted util-linux"
         echo "    sudo ./scripts/build-disk.sh"
         echo ""
         echo "  Option B (Docker, macOS or any host):"
