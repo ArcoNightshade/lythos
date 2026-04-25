@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build-iso.sh — build lythos.iso (El Torito bootable ISO 9660 via GRUB 2)
+# build-iso.sh — build cask.iso (El Torito bootable ISO 9660 via GRUB 2)
 #
 # Usage:
 #   ./scripts/build-iso.sh          # build debug kernel
@@ -16,7 +16,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-ISO_OUT="$REPO_DIR/lythos.iso"
+ISO_OUT="$REPO_DIR/cask.iso"
 ISO_DIR="$REPO_DIR/isodir"
 
 # ── Build kernel ──────────────────────────────────────────────────────────────
@@ -26,11 +26,11 @@ cd "$REPO_DIR"
 if [[ "${RELEASE:-0}" == "1" ]]; then
     echo "[build-iso] building release kernel..."
     cargo build --release
-    KERNEL_ELF="$REPO_DIR/target/x86_64-lythos/release/lythos"
+    KERNEL_ELF="$REPO_DIR/target/x86_64-cask/release/cask"
 else
     echo "[build-iso] building debug kernel..."
     cargo build
-    KERNEL_ELF="$REPO_DIR/target/x86_64-lythos/debug/lythos"
+    KERNEL_ELF="$REPO_DIR/target/x86_64-cask/debug/cask"
 fi
 
 if [[ ! -f "$KERNEL_ELF" ]]; then
@@ -43,7 +43,7 @@ fi
 rm -rf "$ISO_DIR"
 mkdir -p "$ISO_DIR/boot/grub"
 
-cp "$KERNEL_ELF"              "$ISO_DIR/boot/lythos"
+cp "$KERNEL_ELF"              "$ISO_DIR/boot/cask"
 cp "$SCRIPT_DIR/grub.cfg"     "$ISO_DIR/boot/grub/grub.cfg"
 
 echo "[build-iso] ISO tree ready:"
@@ -68,7 +68,7 @@ elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
         bash -c "
             apt-get update -qq &&
             apt-get install -y -qq grub-pc-bin grub-common xorriso mtools &&
-            grub-mkrescue -o /out/lythos.iso /isodir
+            grub-mkrescue -o /out/cask.iso /isodir
         "
 else
     echo "" >&2
@@ -90,6 +90,6 @@ echo ""
 echo "[build-iso] done: $ISO_OUT ($(du -sh "$ISO_OUT" | cut -f1))"
 echo ""
 echo "Run with QEMU:"
-echo "  qemu-system-x86_64 -cdrom lythos.iso -serial stdio -display none -m 128M"
+echo "  qemu-system-x86_64 -cdrom cask.iso -serial stdio -display none -m 128M"
 echo ""
-echo "Or attach lythos.iso as an optical drive in VirtualBox / VMware Fusion."
+echo "Or attach cask.iso as an optical drive in VirtualBox / VMware Fusion."

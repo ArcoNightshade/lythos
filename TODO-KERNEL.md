@@ -1,4 +1,4 @@
-# lythos kernel — outstanding work
+# CASK (Capability-Aware System Kernel) — outstanding work
 
 ## Hardening
 

@@ -1,6 +1,6 @@
-# lythos — kernel development reference
+# CASK (Capability-Aware System Kernel) — kernel development reference
 
-lythos is a completed x86_64 microkernel written in Rust. All 14 build steps are done and the kernel boots cleanly to `[integration] all checks passed` under QEMU. This file is the guide for working on the kernel itself. For writing userspace that runs on lythos, see `RaptorOS/CLAUDE.md`.
+CASK is a completed x86_64 microkernel written in Rust. All 14 build steps are done and the kernel boots cleanly to `[integration] all checks passed` under QEMU. This file is the guide for working on the kernel itself. For writing userspace that runs on cask, see `OROS/CLAUDE.md`.
 
 ---
 
@@ -14,16 +14,16 @@ cargo build
 cargo build --release
 
 # run (debug)
-qemu-system-x86_64 -kernel target/x86_64-lythos/debug/lythos -serial stdio -display none
+qemu-system-x86_64 -kernel target/x86_64-cask/debug/cask -serial stdio -display none
 
 # run (release)
-qemu-system-x86_64 -kernel target/x86_64-lythos/release/lythos -serial stdio -display none
+qemu-system-x86_64 -kernel target/x86_64-cask/release/cask -serial stdio -display none
 
 # run with interrupt/reset tracing (for debugging triple faults)
-qemu-system-x86_64 -kernel target/x86_64-lythos/debug/lythos -serial stdio -display none -d int,cpu_reset
+qemu-system-x86_64 -kernel target/x86_64-cask/debug/cask -serial stdio -display none -d int,cpu_reset
 ```
 
-The target is set by default in `.cargo/config.toml` (`x86_64-lythos.json`). The linker script is `linker.ld`.
+The target is set by default in `.cargo/config.toml` (`x86_64-cask.json`). The linker script is `linker.ld`.
 
 ---
 

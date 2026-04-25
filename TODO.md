@@ -1,23 +1,23 @@
-# lythos / RaptorOS — next steps
+# CASK (Capability-Aware System Kernel) / OROS (Open Runtime Operating System) — next steps
 
-The kernel (lythos) and init process (lythd + lythdist) boot cleanly to
+The kernel (CASK) and init process (lythd + lythdist) boot cleanly to
 `[integration] all checks passed`. This list tracks what comes next.
 
 ---
 
-## ~~1. Wrap SYS_IPC_SEND_CAP / SYS_IPC_RECV_CAP in lythos-std~~ ✓ done
+## ~~1. Wrap SYS_IPC_SEND_CAP / SYS_IPC_RECV_CAP in cask-std~~ ✓ done
 
 **What:** The kernel implements SYS_IPC_SEND_CAP (12) and SYS_IPC_RECV_CAP (13)
-for transferring a capability handle alongside a 64-byte message. lythos-std
+for transferring a capability handle alongside a 64-byte message. cask-std
 exposes neither — every service handshake that delivers a cap must encode the
 handle as raw bytes and re-derive it.
 
 **Fix:** Add `sys_ipc_send_cap(ep_cap, msg, cap_to_send)` and
 `sys_ipc_recv_cap(ep_cap, buf) -> (usize, Option<u64>)` to
-`lythos-std/src/lib.rs`, then expose them on `ipc::Endpoint` as
+`cask-std/src/lib.rs`, then expose them on `ipc::Endpoint` as
 `send_with_cap` / `recv_with_cap`.
 
-**Files:** `RaptorOS/lythos-std/src/lib.rs`, `RaptorOS/lythos-std/src/ipc.rs`
+**Files:** `OROS/cask-std/src/lib.rs`, `OROS/cask-std/src/ipc.rs`
 
 ---
 
@@ -37,27 +37,27 @@ fourth capability (handle 3) at spawn time.
 - `lythdist/src/main.rs` — `const REGISTRY_CAP: u64 = 3;` at entry; send a
   `Register` frame for the name `"lythdist"` before the main loop.
 
-**Files:** `RaptorOS/lythd/src/main.rs`, `RaptorOS/lythdist/src/main.rs`
+**Files:** `OROS/lythd/src/main.rs`, `OROS/lythdist/src/main.rs`
 
 ---
 
-## 3. Wrap SYS_SERIAL_READ in lythos-std
+## 3. Wrap SYS_SERIAL_READ in cask-std
 
 **What:** The kernel exposes SYS_SERIAL_READ (14) — a blocking read from
-COM1 that returns when at least one byte is available. lythos-std has no
+COM1 that returns when at least one byte is available. cask-std has no
 wrapper, so no userspace program can read keyboard or serial input.
 
 **Fix:** Add `sys_serial_read(buf: &mut [u8]) -> Result<usize, SysError>` to
-`lythos-std/src/lib.rs`. Wire it into the existing `io::Read` trait so an
+`cask-std/src/lib.rs`. Wire it into the existing `io::Read` trait so an
 `Endpoint::read()` call works with `BufReader`.
 
-**Files:** `RaptorOS/lythos-std/src/lib.rs`, `RaptorOS/lythos-std/src/io.rs`
+**Files:** `OROS/cask-std/src/lib.rs`, `OROS/cask-std/src/io.rs`
 
 ---
 
-## 4. Add SYS_CLOCK (APIC tick counter) to kernel + lythos-std
+## 4. Add SYS_CLOCK (APIC tick counter) to kernel + cask-std
 
-**What:** `lythos-std/src/time.rs` has a comment: *"Instant is a stub — lythos
+**What:** `cask-std/src/time.rs` has a comment: *"Instant is a stub — cask
 has no wall-clock syscall yet."* The kernel already maintains an APIC tick
 counter (`apic::tick_count()`); it just isn't exposed via syscall.
 
@@ -66,11 +66,11 @@ counter (`apic::tick_count()`); it just isn't exposed via syscall.
 `1_000_000 / APIC_TIMER_HZ` nanoseconds (the calibrated value from
 `apic::init`).
 
-**Fix (lythos-std):** Implement `Instant` using `SYS_CLOCK`:
+**Fix (cask-std):** Implement `Instant` using `SYS_CLOCK`:
 `Instant::now()` calls `sys_clock()`, `elapsed()` returns a `Duration`.
 
-**Files:** `src/syscall.rs`, `src/apic.rs`, `RaptorOS/lythos-std/src/lib.rs`,
-`RaptorOS/lythos-std/src/time.rs`
+**Files:** `src/syscall.rs`, `src/apic.rs`, `OROS/cask-std/src/lib.rs`,
+`OROS/cask-std/src/time.rs`
 
 ---
 
@@ -91,18 +91,18 @@ discovery from IPC.
 - Senders publish to a topic; lythmsg fans out to all subscribers.
 
 **Fix:**
-- Create `RaptorOS/lythmsg/` crate (copy skeleton from lythdist).
+- Create `OROS/lythmsg/` crate (copy skeleton from lythdist).
 - Add to workspace `Cargo.toml`.
-- Add `static LYTHMSG_ELF` to `lythos/src/elf.rs` (via `include_bytes!`).
+- Add `static LYTHMSG_ELF` to `cask/src/elf.rs` (via `include_bytes!`).
 - Spawn lythmsg from `lythd/src/main.rs` after lythdist.
 - Register `"lythmsg"` in the service registry.
 
-**Files:** `RaptorOS/lythmsg/` (new), `RaptorOS/Cargo.toml`,
-`lythos/src/elf.rs`, `RaptorOS/lythd/src/main.rs`
+**Files:** `OROS/lythmsg/` (new), `OROS/Cargo.toml`,
+`cask/src/elf.rs`, `OROS/lythd/src/main.rs`
 
 ---
 
-## 6. First real userspace application — lysh (lythos shell)
+## 6. First real userspace application — lysh (cask shell)
 
 **What:** All infrastructure is in place for a minimal interactive program:
 serial read (item 3), exec (SYS_EXEC), service registry (lythd), and
@@ -116,8 +116,8 @@ and spawns it would exercise the entire stack end-to-end.
 - Prints output via `println!`.
 - No filesystem (binaries embedded as statics, looked up by name).
 
-**Files:** `RaptorOS/lysh/` (new), `RaptorOS/Cargo.toml`,
-`RaptorOS/lythd/src/main.rs` (spawn lysh after lythdist)
+**Files:** `OROS/lysh/` (new), `OROS/Cargo.toml`,
+`OROS/lythd/src/main.rs` (spawn lysh after lythdist)
 
 ---
 

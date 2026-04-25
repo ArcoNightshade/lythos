@@ -1,7 +1,7 @@
 [build]
-target = "x86_64-lythos.json"
+target = "x86_64-cask.json"
 
-[target.x86_64-lythos]
+[target.x86_64-cask]
 rustflags = ["-C", "link-arg=-Tlinker.ld"]
 
 [unstable]

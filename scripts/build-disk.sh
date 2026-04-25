@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # build-disk.sh — build a bootable raw disk image with a btrfs root filesystem
 #
-# Produces lythos.img: MBR-partitioned, 256 MiB, single btrfs partition,
-# GRUB written to the MBR gap (first 1 MiB), kernel at /boot/lythos.
+# Produces cask.img: MBR-partitioned, 256 MiB, single btrfs partition,
+# GRUB written to the MBR gap (first 1 MiB), kernel at /boot/cask.
 #
 # Usage:
 #   ./scripts/build-disk.sh            # debug kernel
 #   RELEASE=1 ./scripts/build-disk.sh  # release kernel
 #
 # Run the result:
-#   qemu-system-x86_64 -drive file=lythos.img,format=raw \
+#   qemu-system-x86_64 -drive file=cask.img,format=raw \
 #       -serial stdio -display none -m 128M
 #
 # Flash to real hardware (replace sdX — THIS ERASES THE DRIVE):
-#   sudo dd if=lythos.img of=/dev/sdX bs=4M status=progress && sync
+#   sudo dd if=cask.img of=/dev/sdX bs=4M status=progress && sync
 #
 # Requirements (choose one):
 #   Option A — native Linux (requires root for losetup/mount/grub-install):
@@ -26,7 +26,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-IMG_OUT="$REPO_DIR/lythos.img"
+IMG_OUT="$REPO_DIR/cask.img"
 IMG_SIZE_MB=256
 
 # ── Build kernel (always runs on the host via cargo) ─────────────────────────
@@ -36,11 +36,11 @@ cd "$REPO_DIR"
 if [[ "${RELEASE:-0}" == "1" ]]; then
     echo "[build-disk] building release kernel..."
     cargo build --release
-    KERNEL_ELF="$REPO_DIR/target/x86_64-lythos/release/lythos"
+    KERNEL_ELF="$REPO_DIR/target/x86_64-cask/release/cask"
 else
     echo "[build-disk] building debug kernel..."
     cargo build
-    KERNEL_ELF="$REPO_DIR/target/x86_64-lythos/debug/lythos"
+    KERNEL_ELF="$REPO_DIR/target/x86_64-cask/debug/cask"
 fi
 
 [[ -f "$KERNEL_ELF" ]] || { echo "error: kernel ELF not found at $KERNEL_ELF" >&2; exit 1; }
@@ -88,13 +88,13 @@ assemble() {
         "$img")
 
     echo "[build-disk] formatting $_PART_LOOP as btrfs..."
-    mkfs.btrfs -f -L lythos "$_PART_LOOP" >/dev/null
+    mkfs.btrfs -f -L cask "$_PART_LOOP" >/dev/null
 
     echo "[build-disk] populating filesystem..."
     mkdir -p /mnt
     mount "$_PART_LOOP" /mnt
     mkdir -p /mnt/boot/grub
-    cp "$kernel"   /mnt/boot/lythos
+    cp "$kernel"   /mnt/boot/cask
     cp "$grub_cfg" /mnt/boot/grub/grub.cfg
 
     echo "[build-disk] installing GRUB to MBR (i386-pc, modules: btrfs part_msdos)..."
@@ -144,7 +144,7 @@ elif command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
             apt-get update -qq
             apt-get install -y -qq grub-pc-bin grub-common grub2-common btrfs-progs parted util-linux
             $(declare -f assemble)
-            assemble /out/lythos.img /kernel /grub.cfg
+            assemble /out/cask.img /kernel /grub.cfg
         "
 else
     {
@@ -168,9 +168,9 @@ echo ""
 echo "[build-disk] done: $IMG_OUT ($(du -sh "$IMG_OUT" | cut -f1))"
 echo ""
 echo "Run with QEMU:"
-echo "  qemu-system-x86_64 -drive file=lythos.img,format=raw \\"
+echo "  qemu-system-x86_64 -drive file=cask.img,format=raw \\"
 echo "      -serial stdio -display none -m 128M"
 echo ""
 echo "Flash to real hardware (replace sdX — THIS ERASES THE TARGET DRIVE):"
-echo "  sudo dd if=lythos.img of=/dev/sdX bs=4M status=progress && sync"
+echo "  sudo dd if=cask.img of=/dev/sdX bs=4M status=progress && sync"
 echo ""
