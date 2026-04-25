@@ -236,6 +236,8 @@ fn alloc_user_stack_into(user_pml4: PhysAddr) -> (VirtAddr, PhysAddr) {
     let slot      = NEXT_STACK_SLOT.fetch_add(1, Ordering::Relaxed);
     assert!(slot < MAX_STACK_SLOTS, "elf: user stack VA window exhausted (>511 exec calls)");
     let slot_base = STACK_GUARD_VA + slot * STACK_SLOT_PAGES * 0x1000;
+    crate::kprintln!("[elf] stack slot {} base={:#x} top={:#x}",
+        slot, slot_base, slot_base + (USER_STACK_PAGES as u64 + 1) * 0x1000);
 
     // Guard page: kernel-only, NX.
     let guard_frame = crate::pmm::alloc_frame()

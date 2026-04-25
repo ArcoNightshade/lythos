@@ -49,7 +49,13 @@ fn page_fault_handler(frame: &ExceptionFrame) -> ! {
     );
 
     if frame.cs & 3 == 3 {
-        // Ring-3 fault: terminate only the offending task.
+        // Ring-3 fault: CPU also pushed RSP and SS above the iret frame.
+        let frame_ptr = frame as *const ExceptionFrame as *const u64;
+        let struct_u64s = core::mem::size_of::<ExceptionFrame>() / 8;
+        let user_rsp = unsafe { *frame_ptr.add(struct_u64s) };
+        let user_ss  = unsafe { *frame_ptr.add(struct_u64s + 1) };
+        kprintln!("[#PF] user RSP={:#x}  SS={:#x}", user_rsp, user_ss);
+        // Terminate only the offending task.
         let tid = crate::task::current_task_id();
         kprintln!("[#PF] user task {} killed", tid);
         crate::task::task_exit();

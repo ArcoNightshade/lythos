@@ -73,7 +73,7 @@ impl SerialPort {
             outb(self.base + OFF_DLAB_LO, 0x01); // divisor = 1  →  115200 baud
             outb(self.base + OFF_DLAB_HI, 0x00);
             outb(self.base + OFF_LCR,     0x03); // 8 data bits, no parity, 1 stop; clear DLAB
-            outb(self.base + OFF_FCR,     0xC7); // enable FIFO, clear TX/RX, 14-byte threshold
+            outb(self.base + OFF_FCR,     0x01); // enable FIFO, 1-byte threshold (polls via LSR)
             outb(self.base + OFF_MCR,     0x0B); // assert DTR + RTS
         }
     }

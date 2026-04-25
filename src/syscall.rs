@@ -143,8 +143,15 @@ global_asm!(r#"
 .global syscall_entry
 .type   syscall_entry, @function
 syscall_entry:
+    // Save user RSP to the global temporarily, then switch to the kernel stack.
     movq   %rsp, SYSCALL_USER_RSP(%rip)
     movq   SYSCALL_KERN_RSP(%rip), %rsp
+
+    // Push user RSP FIRST (highest address on kernel stack, before the rest of
+    // the frame).  This stores it per-task so that if yield_task() runs while
+    // we are inside a syscall, another task's syscall cannot overwrite it via
+    // the global SYSCALL_USER_RSP.
+    pushq  SYSCALL_USER_RSP(%rip)   // saved user RSP (above SyscallFrame)
 
     pushq  %r9
     pushq  %r8
@@ -162,7 +169,7 @@ syscall_entry:
     pushq  %r14
     pushq  %r15
 
-    movq   %rsp, %rdi          // arg0: *mut SyscallFrame
+    movq   %rsp, %rdi          // arg0: *mut SyscallFrame (r15 at lowest address)
     call   syscall_dispatch    // returns u64 in rax
 
     // Restore callee-saved regs without clobbering rax (return value).
@@ -175,9 +182,20 @@ syscall_entry:
     popq   %r11    // user rflags → R11 (used by sysretq)
     popq   %rcx    // user rip   → RCX (used by sysretq)
 
-    addq   $56, %rsp           // skip nr + a1..a6 (7 × 8 bytes)
+    // Restore user argument registers so they are preserved across syscalls.
+    // Push order was: r9, r8, r10, rdx, rsi, rdi, rax(nr).
+    // Skip nr (rax), then pop in reverse push order.
+    addq   $8, %rsp            // skip nr (syscall number was in rax; we use rax for return value)
+    popq   %rdi
+    popq   %rsi
+    popq   %rdx
+    popq   %r10
+    popq   %r8
+    popq   %r9
 
-    movq   SYSCALL_USER_RSP(%rip), %rsp
+    // Restore user RSP from the kernel stack (not the global — another task
+    // may have overwritten SYSCALL_USER_RSP while we were inside yield_task).
+    popq   %rsp
     sysretq
 
 // ─────────────────────────────────────────────────────────────────────────────
