@@ -688,8 +688,8 @@ fn core_smoke() {
     {
         let mut f: syscall::SyscallFrame = unsafe { core::mem::zeroed() };
 
-        // Unknown syscall numbers → ENOSYS (14 = SYS_SERIAL_READ is implemented; skip it)
-        for nr in [15u64, 100, 255, u64::MAX] {
+        // Unknown syscall numbers → ENOSYS (16 = SYS_TASK_STATUS is highest implemented)
+        for nr in [17u64, 100, 255, u64::MAX] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(
@@ -889,6 +889,36 @@ fn core_smoke() {
             syscall::syscall_dispatch(&mut f),
             syscall::ENOCAP,
             "fuzz: SYS_CAP_REVOKE bogus handle"
+        );
+
+        // SYS_TIME: no args, always returns a millisecond count (never an error sentinel).
+        // Error sentinels are the top four u64 values (EINVAL..ENOSYS).
+        f = unsafe { core::mem::zeroed() };
+        f.nr = syscall::SYS_TIME;
+        let t = syscall::syscall_dispatch(&mut f);
+        assert!(
+            t < syscall::EINVAL,
+            "fuzz: SYS_TIME returned error sentinel {:#x}", t
+        );
+
+        // SYS_TASK_STATUS: nonexistent task ID → 0 (dead/missing), never an error.
+        f = unsafe { core::mem::zeroed() };
+        f.nr = syscall::SYS_TASK_STATUS;
+        f.a1 = 0xDEAD_BEEF_DEAD_BEEF;
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            0,
+            "fuzz: SYS_TASK_STATUS bogus task_id must return 0"
+        );
+
+        // SYS_TASK_STATUS: bootstrap task (id=0) is always alive → 1.
+        f = unsafe { core::mem::zeroed() };
+        f.nr = syscall::SYS_TASK_STATUS;
+        f.a1 = 0; // kmain / bootstrap task
+        assert_eq!(
+            syscall::syscall_dispatch(&mut f),
+            1,
+            "fuzz: SYS_TASK_STATUS bootstrap task must be alive"
         );
     }
     kprintln!("[integration] syscall fuzz passed — all bad inputs rejected");

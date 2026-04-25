@@ -41,6 +41,8 @@
 /// | 12 | SYS_IPC_SEND_CAP |
 /// | 13 | SYS_IPC_RECV_CAP |
 /// | 14 | SYS_SERIAL_READ  |
+/// | 15 | SYS_TIME         |
+/// | 16 | SYS_TASK_STATUS  |
 
 use core::arch::global_asm;
 
@@ -73,6 +75,13 @@ pub const SYS_IPC_RECV_CAP: u64 = 13;
 /// Blocks (yielding the CPU) until at least one byte is available, then
 /// reads as many bytes as are ready (up to buf_len).  Returns bytes read.
 pub const SYS_SERIAL_READ:  u64 = 14;
+/// Return milliseconds elapsed since kernel boot (APIC tick counter).
+/// No arguments.  Always succeeds; return value is a `u64` millisecond count.
+pub const SYS_TIME:         u64 = 15;
+/// Return the liveness status of a task by ID.
+/// a1 = TaskId.
+/// Returns: 0 = not found / dead, 1 = running or ready, 2 = blocked.
+pub const SYS_TASK_STATUS:  u64 = 16;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -701,6 +710,14 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             }
 
             n as u64
+        }
+        SYS_TIME => {
+            // Return milliseconds since boot — APIC tick counter (1 tick ≈ 1 ms).
+            crate::apic::ticks()
+        }
+        SYS_TASK_STATUS => {
+            // a1 = TaskId; returns 0=dead/missing, 1=running/ready, 2=blocked.
+            crate::task::task_status_raw(frame.a1)
         }
         _ => ENOSYS,
     }

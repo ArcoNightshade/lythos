@@ -453,6 +453,23 @@ pub fn task_exists(id: TaskId) -> bool {
     sched.tasks.iter().any(|t| t.id == id)
 }
 
+/// Return the raw task status for `SYS_TASK_STATUS`:
+/// - `0` — task not found or already reaped (Dead)
+/// - `1` — task is Running or Ready
+/// - `2` — task is Blocked
+pub fn task_status_raw(id: TaskId) -> u64 {
+    let sched = unsafe { get_sched() };
+    match sched.tasks.iter().find(|t| t.id == id) {
+        None    => 0,
+        Some(t) => match t.state {
+            TaskState::Dead              => 0,
+            TaskState::Running |
+            TaskState::Ready             => 1,
+            TaskState::Blocked           => 2,
+        },
+    }
+}
+
 /// Return the ID of the currently running task.
 pub fn current_task_id() -> TaskId {
     let sched = unsafe { get_sched() };
