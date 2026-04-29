@@ -333,6 +333,27 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     core_smoke();
     kprintln!("[integration] all checks passed");
 
+    // ── Locate lythd ELF ────────────────────────────────────────────────
+    //
+    // QEMU's a.out-kludge MB1 path does not populate the MB1 modules list,
+    // so lythd cannot be passed via `-initrd`.  Instead `run.sh` uses:
+    //   -device loader,file=lythd,addr=0x400000,force-raw=on
+    // which DMA-writes the raw ELF bytes to physical address 0x400000
+    // (identity-mapped, so phys==virt) before the CPU starts.
+    // pmm::init() already reserved [0x400000, 0x400000+512KiB) as used.
+    let lythd_elf: &[u8] = unsafe {
+        let ptr = pmm::LYTHD_MODULE_ADDR as *const u8;
+        // Sanity-check: verify the ELF magic is present.
+        assert!(
+            *ptr.add(0) == 0x7F && *ptr.add(1) == b'E'
+                && *ptr.add(2) == b'L' && *ptr.add(3) == b'F',
+            "lythd ELF magic not found at {:#x} — \
+             run QEMU with: -device loader,file=lythd,addr={:#x},force-raw=on",
+            pmm::LYTHD_MODULE_ADDR, pmm::LYTHD_MODULE_ADDR,
+        );
+        core::slice::from_raw_parts(ptr, pmm::LYTHD_MODULE_MAX)
+    };
+
     // ── lythd bootstrap ───────────────────────────────────────────────────
     //
     // Build the initial capability set and exec lythd with it.
@@ -388,7 +409,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // can read from it during cap inheritance.
     task::set_bootstrap_cap_table(kmain_caps);
 
-    elf::exec(elf::LYTHD_ELF, &[mem_cap, rollback_cap, boot_cap], &[])
+    elf::exec(&lythd_elf, &[mem_cap, rollback_cap, boot_cap], &[])
         .expect("lythd bootstrap: exec failed");
 
     kprintln!("[boot] lythd launched — entering scheduler");
@@ -686,10 +707,9 @@ fn core_smoke() {
     // All cases are called directly via `syscall_dispatch` (no ring-3 needed).
     // A panic here means the kernel did not reject a bad input gracefully.
     {
-        let mut f: syscall::SyscallFrame = unsafe { core::mem::zeroed() };
-
-        // Unknown syscall numbers → ENOSYS (16 = SYS_TASK_STATUS is highest implemented)
-        for nr in [17u64, 100, 255, u64::MAX] {
+        // Unknown syscall numbers → ENOSYS (19 = SYS_TASK_KILL is highest implemented)
+        let mut f: syscall::SyscallFrame;
+        for nr in [20u64, 100, 255, u64::MAX] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(

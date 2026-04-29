@@ -15,12 +15,16 @@ else
 fi
 
 # ── build userspace ───────────────────────────────────────────────────────────
+# Build order: lythdist and lysh first (lythd embeds them via include_bytes!).
 echo "[run.sh] building OROS userspace..."
 (cd "$OROS" && cargo build -p lythdist --release -q)
 (cd "$OROS" && cargo build -p lysh     --release -q)
 (cd "$OROS" && cargo build -p lythd    --release -q)
+LYTHD_BIN="$OROS/target/x86_64-oros/release/lythd"
 
 # ── build kernel ──────────────────────────────────────────────────────────────
+# The kernel no longer embeds lythd — it is passed as a Multiboot module below.
+# Kernel and OROS can now be rebuilt independently.
 echo "[run.sh] building lythos kernel..."
 (cd "$LYTHOS" && cargo build $CARGO_FLAGS -q)
 
@@ -39,6 +43,7 @@ trap cleanup EXIT
 echo "[run.sh] launching QEMU..."
 qemu-system-x86_64 \
     -kernel "$KERNEL_BIN" \
+    -device loader,file="$LYTHD_BIN",addr=0x400000,force-raw=on \
     -chardev socket,id=s0,path="$SOCK",server=on,wait=on \
     -serial chardev:s0 \
     -display none \

@@ -16,7 +16,12 @@
 
 /* ── Multiboot1 header (QEMU -kernel uses SeaBIOS Multiboot1) ──────────── */
 /* Bit 16 (a.out kludge) tells QEMU to use our address fields directly      */
-/* instead of parsing the ELF header, which lets it accept 64-bit ELFs.     */
+/* instead of parsing the ELF header.  This is required because QEMU's MB1  */
+/* loader rejects 64-bit ELFs without the kludge.                           */
+/* NOTE: with the a.out kludge, QEMU does NOT populate MB1 info flags or    */
+/* the modules list.  lythd is therefore passed via -device loader (see     */
+/* run.sh), which writes raw bytes to a fixed physical address (0x400000)   */
+/* independently of the Multiboot protocol.                                  */
 .section .multiboot, "a"
 .align 4
 mb1_start:
@@ -26,9 +31,12 @@ mb1_start:
     /* a.out kludge address fields */
     .long  mb1_start    /* header_addr: VA of this header (= load base)  */
     .long  mb1_start    /* load_addr:   load image to this physical addr  */
-    .long  0            /* load_end_addr: 0 = load to EOF                */
-    .long  0            /* bss_end_addr:  0 = skip BSS zeroing           */
-    .long  _start       /* entry_addr:    jump here after load           */
+    .long  KERNEL_END   /* load_end_addr: stop here — skips ELF debug    */
+                        /*  sections that follow KERNEL_END in the file, */
+                        /*  keeping physical memory above KERNEL_END free */
+                        /*  for the lythd module loaded via -device       */
+    .long  0            /* bss_end_addr:  0 = boot.s handles BSS         */
+    .long  _start       /* entry_addr:    jump here after load            */
 mb1_end:
 
 /* ── Multiboot2 header (GRUB2) ─────────────────────────────────────────── */

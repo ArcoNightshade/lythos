@@ -386,11 +386,19 @@ pub fn yield_task() {
     sched.tasks[next].state    = TaskState::Running;
     sched.current              = next;
 
+    // Disable interrupts before switch_cr3 so the APIC timer cannot fire
+    // between switch_cr3 (which sets RSP0 = next's stack) and switch_context.
+    // If it fired there the ISR would run on next's stack; its yield_task would
+    // overwrite next.context.rsp (making to_ctx stale) and sweep_dead could
+    // free current's stack (making from_ctx dangling). The sti below re-enables
+    // interrupts when this task is next resumed.
+    unsafe { core::arch::asm!("cli", options(nostack)) };
     switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     // After this call returns we are back in `current`'s context.
     unsafe { switch_context(from_ctx, to_ctx); }
-    // Re-enable interrupts: if we were switched to from a timer ISR context
-    // (IF=0), the resumed task must run with interrupts enabled.
+    // Re-enable interrupts: covers both the cooperative-yield case (IF was 1
+    // before cli above) and the timer-ISR case (IF was already 0; sti here
+    // fires before iretq restores the original RFLAGS, which is harmless).
     unsafe { core::arch::asm!("sti", options(nostack)) };
 }
 
@@ -423,6 +431,12 @@ pub fn task_exit() -> ! {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
+    // Disable interrupts so the APIC cannot fire between switch_cr3 and
+    // switch_context (same race as yield_task — see comment there). Interrupts
+    // stay disabled until the new task executes sti in its yield_task/
+    // block_and_yield continuation, or until iretq restores RFLAGS on the
+    // ISR path. task_exit never returns so no matching sti is needed here.
+    unsafe { core::arch::asm!("cli", options(nostack)) };
     switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     unsafe { switch_context(from_ctx, to_ctx); }
 
@@ -467,6 +481,45 @@ pub fn task_status_raw(id: TaskId) -> u64 {
             TaskState::Ready             => 1,
             TaskState::Blocked           => 2,
         },
+    }
+}
+
+/// Iterate live (non-Dead) tasks, calling `f(index, id, state_raw, kind)` for each.
+/// `state_raw`: 1=running/ready, 2=blocked.  `kind`: 0=kernel, 1=userspace.
+/// Returns the number of live tasks visited.
+pub fn for_each_task<F>(mut f: F) -> usize
+where
+    F: FnMut(usize, TaskId, u64, u8),
+{
+    let sched = unsafe { get_sched() };
+    let mut idx = 0;
+    for t in sched.tasks.iter() {
+        if t.state == TaskState::Dead { continue; }
+        let state_raw = match t.state {
+            TaskState::Blocked => 2,
+            _                  => 1,
+        };
+        let kind: u8 = if t.page_table.is_some() { 1 } else { 0 };
+        f(idx, t.id, state_raw, kind);
+        idx += 1;
+    }
+    idx
+}
+
+/// Kill a task by ID.
+///
+/// Marks the target task Dead so the scheduler reaps it on the next sweep.
+/// Returns `false` if the task is not found, already dead, or is task 0 (lythd).
+/// Killing the current task is also rejected (use `task_exit` instead).
+pub fn kill_task(id: TaskId) -> bool {
+    // Refuse to kill task 0 (lythd / bootstrap) or ourselves.
+    if id == 0 { return false; }
+    let sched = unsafe { get_sched() };
+    let current_id = sched.tasks[sched.current].id;
+    if id == current_id { return false; }
+    match sched.tasks.iter_mut().find(|t| t.id == id) {
+        Some(t) if t.state != TaskState::Dead => { t.state = TaskState::Dead; true }
+        _ => false,
     }
 }
 
@@ -664,6 +717,7 @@ pub fn block_and_yield() {
     sched.tasks[next].state = TaskState::Running;
     sched.current           = next;
 
+    unsafe { core::arch::asm!("cli", options(nostack)) };
     switch_cr3(sched.tasks[next].page_table, sched.tasks[next]._stack_top);
     unsafe { switch_context(from_ctx, to_ctx); }
     // Resumed here when wake_task + a subsequent schedule picks us back up.

@@ -43,6 +43,7 @@
 /// | 14 | SYS_SERIAL_READ  |
 /// | 15 | SYS_TIME         |
 /// | 16 | SYS_TASK_STATUS  |
+/// | 17 | SYS_TASK_LIST   |
 
 use core::arch::global_asm;
 
@@ -82,6 +83,21 @@ pub const SYS_TIME:         u64 = 15;
 /// a1 = TaskId.
 /// Returns: 0 = not found / dead, 1 = running or ready, 2 = blocked.
 pub const SYS_TASK_STATUS:  u64 = 16;
+/// Fill a user buffer with TaskInfo structs (one per live task).
+/// a1 = buf_ptr (user VA, *mut TaskInfo), a2 = buf_capacity (max entries).
+/// Returns number of entries written.  Each entry is 24 bytes:
+///   offset  0: u64  task_id
+///   offset  8: u64  state  (1=running, 2=ready, 3=blocked)
+///   offset 16: u8   kind   (0=kernel, 1=userspace)
+///   offset 17: [u8; 7] pad
+pub const SYS_TASK_LIST:    u64 = 17;
+/// Return physical memory statistics.
+/// No arguments.  Returns free 4 KiB frame count as a u64.
+pub const SYS_MEM_STAT:     u64 = 18;
+/// Terminate a task by ID.
+/// a1 = TaskId.
+/// Returns 0 on success, EINVAL if not found / already dead / protected task.
+pub const SYS_TASK_KILL:    u64 = 19;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -736,6 +752,37 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
         SYS_TASK_STATUS => {
             // a1 = TaskId; returns 0=dead/missing, 1=running/ready, 2=blocked.
             crate::task::task_status_raw(frame.a1)
+        }
+        SYS_TASK_LIST => {
+            // a1=buf_ptr (*mut TaskInfo), a2=buf_capacity (max entries)
+            // TaskInfo layout: u64 id | u64 state | u8 kind | [u8;7] pad  (24 bytes)
+            let cap = frame.a2 as usize;
+            if cap == 0 { return 0; }
+            const ENTRY: usize = 24;
+            let bytes = cap.saturating_mul(ENTRY);
+            if !valid_user_range(frame.a1, bytes as u64) { return EINVAL; }
+            let buf = frame.a1 as *mut u8;
+            let n = crate::task::for_each_task(|idx, id, state_raw, kind| {
+                if idx >= cap { return; }
+                let entry = unsafe { buf.add(idx * ENTRY) };
+                unsafe {
+                    with_user_access(|| {
+                        core::ptr::write_unaligned(entry as *mut u64, id);
+                        core::ptr::write_unaligned(entry.add(8) as *mut u64, state_raw);
+                        core::ptr::write(entry.add(16), kind);
+                        core::ptr::write_bytes(entry.add(17), 0, 7);
+                    });
+                }
+            });
+            n as u64
+        }
+        SYS_MEM_STAT => {
+            crate::pmm::free_frame_count() as u64
+        }
+        SYS_TASK_KILL => {
+            // a1 = TaskId to kill.
+            let target = frame.a1;
+            if crate::task::kill_task(target) { 0 } else { EINVAL }
         }
         _ => ENOSYS,
     }

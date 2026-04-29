@@ -20,6 +20,15 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 pub const FRAME_SIZE: u64 = 4096;
 
+/// Physical address where `run.sh` loads the lythd ELF via QEMU's
+/// `-device loader,addr=LYTHD_MODULE_ADDR,force-raw=on`.
+/// The PMM reserves this range so no allocator can reclaim the frames before
+/// `kmain` copies the ELF to the heap.
+pub const LYTHD_MODULE_ADDR: u64   = 0x0040_0000; // 4 MiB
+/// Maximum size reserved for the lythd ELF.  Currently ~92 KiB; 512 KiB
+/// gives generous headroom.
+pub const LYTHD_MODULE_MAX:  usize = 512 * 1024;  // 512 KiB
+
 /// Maximum supported physical address space: 4 GiB.
 const MAX_FRAMES: usize = (4 * 1024 * 1024 * 1024u64 / FRAME_SIZE) as usize; // 1 M frames
 
@@ -251,7 +260,16 @@ pub fn init(mb_magic: u32, mb_info: u64) {
     // 4. Always reserve physical frame 0 (BIOS data area / real-mode IVT).
     unsafe { set_used(0) };
 
-    // 5. Count free frames.
+    // 5. Reserve the lythd ELF region.
+    //    QEMU's a.out-kludge MB1 path does not populate the MB1 modules list,
+    //    so lythd is loaded by `run.sh` via:
+    //      -device loader,file=lythd,addr=LYTHD_MODULE_ADDR,force-raw=on
+    //    This writes raw bytes to a fixed physical address before the CPU
+    //    starts.  Marking those frames as used here prevents the PMM from
+    //    handing them out before kmain has copied the ELF to the heap.
+    unsafe { mark_range_used(LYTHD_MODULE_ADDR, LYTHD_MODULE_ADDR + LYTHD_MODULE_MAX as u64) };
+
+    // 6. Count free frames.
     let free: usize = unsafe {
         let p = ptr::addr_of!(BITMAP) as *const u64;
         (0..BITMAP_WORDS).map(|i| (*p.add(i)).count_zeros() as usize).sum()

@@ -24,10 +24,12 @@
 use core::cell::UnsafeCell;
 use core::mem;
 
-pub const KERNEL_CODE_SEL: u16 = 0x08;
-pub const KERNEL_DATA_SEL: u16 = 0x10;
-pub const USER_DATA_SEL:   u16 = 0x18;
-pub const USER_CODE_SEL:   u16 = 0x20;
+// Segment selector values (index * 8 | RPL).  Used by the assembly stubs as
+// hardcoded immediates; kept here as documentation and for future Rust callers.
+#[allow(dead_code)] pub const KERNEL_CODE_SEL: u16 = 0x08;
+#[allow(dead_code)] pub const KERNEL_DATA_SEL: u16 = 0x10;
+#[allow(dead_code)] pub const USER_DATA_SEL:   u16 = 0x18;
+#[allow(dead_code)] pub const USER_CODE_SEL:   u16 = 0x20;
 pub const TSS_SEL:         u16 = 0x28;
 
 // GDT entries 5–6 (the TSS descriptor) are filled at runtime because the TSS

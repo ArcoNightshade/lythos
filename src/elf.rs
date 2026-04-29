@@ -409,19 +409,6 @@ pub fn exec(elf_data: &[u8], caps: &[CapHandle], argv: &[&str]) -> Result<TaskId
 //
 // The load VA is chosen to be above the VMM's 0→1 GiB identity-mapped region.
 
-/// The real lythd init process binary, compiled from OROS/lythd.
-///
-/// Built with `cargo build --release` in the OROS workspace targeting
-/// `x86_64-oros`.  Entry point is `_start` via `userspace.ld`.
-///
-/// lythd:
-///   1. Receives the BootInfo message on cap handle 2.
-///   2. Prints system info via SYS_LOG.
-///   3. Creates the service registry IPC endpoint.
-///   4. Blocks in the supervisor loop waiting for service registrations.
-pub static LYTHD_ELF: &[u8] =
-    include_bytes!("../../RaptorOS/target/x86_64-oros/release/lythd");
-
 pub static SMOKE_ELF: &[u8] = &[
     // ── ELF header (64 bytes) ─────────────────────────────────────────────
     0x7F, 0x45, 0x4C, 0x46,              // ELF magic
