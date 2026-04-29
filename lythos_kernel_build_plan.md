@@ -1,4 +1,4 @@
-# CASK (Capability-Aware System Kernel) — 14-Step Build Plan
+# Lythos (Capability-Aware System Kernel) — 14-Step Build Plan
 
 **Target**: x86_64 (primary), aarch64 (secondary)
 **Language**: Rust
@@ -8,7 +8,7 @@
 
 ## Scope
 
-CASK (Capability-Aware System Kernel) is a **microkernel**. This repo contains only kernel code. All drivers, daemons, and userspace programs (`lythd`, `lythdist`, `lythmsg`, etc.) live in the **OROS** repo and run in ring 3.
+Lythos (Capability-Aware System Kernel) is a **microkernel**. This repo contains only kernel code. All drivers, daemons, and userspace programs (`lythd`, `lythdist`, `lythmsg`, etc.) live in the **OROS** repo and run in ring 3.
 
 The kernel exposes exactly four syscall categories: memory management, IPC primitives, capability operations, and scheduling. Nothing else belongs in this repo.
 
@@ -20,14 +20,14 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 
 **Implementation**:
 
-- Create a `no_std`, `no_main` Rust workspace with a custom target spec: `x86_64-cask.json`.
+- Create a `no_std`, `no_main` Rust workspace with a custom target spec: `x86_64-lythos.json`.
 - Target fields: `"os": "none"`, `"panic-strategy": "abort"`, `"disable-redzone": true`, `"features": "-mmx,-sse,+soft-float"` (SSE must be disabled before stack setup).
 - Write a 16→32→64-bit assembly stub (`boot.asm`) using NASM or inline `global_asm!`. The stub sets up a minimal GDT, switches to 64-bit long mode, sets up a temporary stack pointer, then calls `kmain()`.
 - Use a linker script (`linker.ld`) to place `.boot` section at `0x100000`, define `KERNEL_START` and `KERNEL_END` symbols for later use by the physical memory allocator.
 - Boot via GRUB2 Multiboot2 header for now; replace with a UEFI stub in Step 2 or later.
 - Verify with QEMU: `qemu-system-x86_64 -kernel kernel.elf -serial stdio`.
 
-**aarch64 note**: Add a second target spec `aarch64-cask.json`. The entry stub uses `bl kmain` after setting `SP` to a static stack region. QEMU target: `qemu-system-aarch64 -M virt -cpu cortex-a57`.
+**aarch64 note**: Add a second target spec `aarch64-lythos.json`. The entry stub uses `bl kmain` after setting `SP` to a static stack region. QEMU target: `qemu-system-aarch64 -M virt -cpu cortex-a57`.
 
 ---
 
@@ -204,7 +204,7 @@ The kernel exposes exactly four syscall categories: memory management, IPC primi
 - `lythdist` (OROS) creates endpoints at boot: it allocates a physical page via `mmap`, maps it into both sender and receiver address spaces, and hands each party a `CapHandle` for the endpoint. The kernel provides the mapping primitive; the policy is `lythdist`'s job.
 - The ring buffer layout (in the shared page): `head: AtomicU32`, `tail: AtomicU32`, `data: [u8; N]`. Sender writes to `tail`; receiver reads from `head`. No kernel involvement for the data path — both sides access the shared page directly.
 - The kernel is involved only for blocking/waking: `ipc_send` does a fast-path check (is there space?) and calls `block_task` if the buffer is full. `ipc_recv` similarly blocks if empty. The kernel wakes the blocked task via `wake_task` when the condition changes.
-- Message framing: fixed 64-byte message slots (or variable with a 4-byte length prefix). Document the format in a shared header consumed by both cask and OROS.
+- Message framing: fixed 64-byte message slots (or variable with a 4-byte length prefix). Document the format in a shared header consumed by both lythos and OROS.
 
 ---
 

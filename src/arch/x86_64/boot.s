@@ -1,5 +1,5 @@
 /*
- * boot.s — CASK (Capability-Aware System Kernel) x86_64 boot stub
+ * boot.s — Lythos (Capability-Aware System Kernel) x86_64 boot stub
  *
  * Both Multiboot1 (QEMU -kernel / SeaBIOS) and Multiboot2 (GRUB2) headers
  * are present so the same ELF works in both environments.

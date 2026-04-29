@@ -1,4 +1,4 @@
-# CASK — Capability-Aware System Kernel
+# Lythos — Capability-Aware System Kernel
 
 A capability-based microkernel written in Rust, targeting bare-metal x86_64.
 Built from scratch.
@@ -7,7 +7,7 @@ Built from scratch.
 
 ## What is this?
 
-CASK (Capability-Aware System Kernel) is a kernel built around three ideas:
+Lythos (Capability-Aware System Kernel) is a kernel built around three ideas:
 
 1. **Capability tokens** — every resource (memory region, IPC endpoint, device) is accessed through an unforgeable kernel-managed handle. No ambient authority.
 2. **A stable service model** — a PID-1 supervisor (`lythd`) owns process lifecycle, dependency ordering, and a 30-second automatic rollback window on bad updates.
@@ -123,7 +123,7 @@ Cooperative round-robin over a `Vec<Box<Task>>`. Each task owns a 16 KiB heap-al
 ## Boot output
 
 ```
-cask kernel initializing...
+lythos kernel initializing...
 [gdt] loaded
 [idt] loaded - exceptions active
 [pmm] initialized — 32556 free frames (127 MiB)
@@ -159,13 +159,13 @@ Boot complete.
 cargo build
 ```
 
-The `.cargo/config.toml` supplies the target (`x86_64-cask.json`), the linker script, and the `build-std` flags automatically.
+The `.cargo/config.toml` supplies the target (`x86_64-lythos.json`), the linker script, and the `build-std` flags automatically.
 
 **Run under QEMU**
 
 ```bash
 qemu-system-x86_64 \
-  -kernel target/x86_64-cask/debug/cask \
+  -kernel target/x86_64-lythos/debug/lythos \
   -serial stdio \
   -display none
 ```
@@ -177,7 +177,7 @@ Add `-d int,cpu_reset` to log all interrupts and CPU resets — useful when debu
 ## Repository layout
 
 ```
-cask/
+lythos/
 ├── src/
 │   ├── main.rs              # kmain, boot orchestration, smoke tests
 │   ├── serial.rs            # 16550A UART driver, spinlock, kprint! macro
@@ -192,7 +192,7 @@ cask/
 │       └── x86_64/
 │           ├── boot.s       # Multiboot2 header, 32→64-bit stub
 │           └── isr_stubs.s  # Exception stubs (vectors 0–31)
-├── x86_64-cask.json       # Custom Rust target specification
+├── x86_64-lythos.json       # Custom Rust target specification
 ├── linker.ld                # Kernel linker script (load at 0x100000)
 ├── rust-toolchain.toml      # Pins nightly + required components
 ├── Cargo.toml               # Crate manifest (no_std, panic = abort)

@@ -36,7 +36,7 @@ global_asm!(include_str!("arch/x86_64/isr_stubs.s"), options(att_syntax));
 #[unsafe(no_mangle)]
 pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     serial::init();
-    kprintln!("cask kernel initializing...");
+    kprintln!("lythos kernel initializing...");
 
     gdt::init();
     kprintln!("[gdt] loaded");

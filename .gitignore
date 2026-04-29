@@ -22,8 +22,8 @@ target/
 /target
 
 # Build artifacts
-/cask.iso
-/cask.img
+/lythos.iso
+/lythos.img
 /isodir/
 
 **/mutants.out*/

@@ -5,13 +5,13 @@
 
 ## Overview
 
-OROS (Open Runtime Operating System) is a capability-secure microkernel operating system built on the CASK (Capability-Aware System Kernel) kernel, written in Rust. It uses a Btrfs subvolume-based filesystem for atomic updates and rollbacks, musl libc for broad POSIX compatibility, and a unified tooling ecosystem split between system daemons (`lyth-` prefix) and user-facing tools (`rp-` prefix).
+OROS (Open Runtime Operating System) is a capability-secure microkernel operating system built on the Lythos (Capability-Aware System Kernel) kernel, written in Rust. It uses a Btrfs subvolume-based filesystem for atomic updates and rollbacks, musl libc for broad POSIX compatibility, and a unified tooling ecosystem split between system daemons (`lyth-` prefix) and user-facing tools (`rp-` prefix).
 
 ---
 
-## 1. The Core: CASK Microkernel
+## 1. The Core: Lythos Microkernel
 
-CASK (Capability-Aware System Kernel) is a minimalist, high-performance microkernel. All drivers and services run in userspace. The kernel exposes a minimal syscall surface across four categories: memory management, IPC primitives, capability operations, and scheduling.
+Lythos (Capability-Aware System Kernel) is a minimalist, high-performance microkernel. All drivers and services run in userspace. The kernel exposes a minimal syscall surface across four categories: memory management, IPC primitives, capability operations, and scheduling.
 
 ### Architecture
 
@@ -38,7 +38,7 @@ The boot sequence is strictly ordered. `lythmsg` does not become available until
 
 | Step | Actor | Action |
 |---|---|---|
-| 1 | CASK kernel | Initializes, mounts `/lth/system` (immutable, read-only) |
+| 1 | Lythos kernel | Initializes, mounts `/lth/system` (immutable, read-only) |
 | 2 | `lythd` | Starts as PID 1 |
 | 3 | `lythd` → `lythdist` | `lythd` spawns `lythdist`; `lythdist` reads hardware topology and allocates capability tokens |
 | 4 | `lythdist` → `lythd` | `lythdist` grants `lythd` its capabilities and opens for service requests |
@@ -58,7 +58,7 @@ OROS uses a Btrfs subvolume-based structure. The `/lth/` namespace is system-own
 
 | Path | Subvolume | Writable | Description |
 |---|---|---|---|
-| `/lth/system` | `@core` | No | Immutable. CASK kernel and `lythd`. |
+| `/lth/system` | `@core` | No | Immutable. Lythos kernel and `lythd`. |
 | `/lth/store` | `@store` | No* | Read-only store for compiled binaries. Functions like `/nix/store` — content-addressed, never mutated in place. (*`rpkg` mounts rw transiently during installs.) |
 | `/lth/bin` | N/A | No | Symlinks managed by `rpkg` pointing to active versions in `/lth/store`. |
 | `/cfg` | `@cfg` | Yes | System configuration. Snapshotted atomically with `/lth/system` before every `rpkg` update. |
@@ -127,27 +127,27 @@ deps     = ["lythmsg"]
 
 ## 6. Standard Library & Runtime
 
-OROS uses a hybrid ABI model. Native OROS programs talk directly to the CASK syscall interface. An optional compatibility server (`cask-linux-compat`) provides Linux syscall translation for ported software, without any Linux-specific concerns entering the kernel.
+OROS uses a hybrid ABI model. Native OROS programs talk directly to the Lythos syscall interface. An optional compatibility server (`lythos-linux-compat`) provides Linux syscall translation for ported software, without any Linux-specific concerns entering the kernel.
 
 ### Native ABI (default)
 
-Native OROS programs link against `cask-std`, a minimal runtime that calls CASK syscalls directly. No translation layer, no Linux assumptions.
+Native OROS programs link against `lythos-std`, a minimal runtime that calls Lythos syscalls directly. No translation layer, no Linux assumptions.
 
 | Property | Value |
 |---|---|
-| Runtime | `cask-std` — thin layer over native CASK syscalls |
-| Rust std | Custom `std` implementation targeting the native CASK ABI |
-| Syscall interface | CASK native — four categories: memory, IPC, capability ops, scheduling |
+| Runtime | `lythos-std` — thin layer over native Lythos syscalls |
+| Rust std | Custom `std` implementation targeting the native Lythos ABI |
+| Syscall interface | Lythos native — four categories: memory, IPC, capability ops, scheduling |
 | Linking | Static by default. `rpkg` reflinks deduplicate identical copies in `/lth/store` |
 
 ### Linux Compatibility Layer (optional)
 
-`cask-linux-compat` is an optional userspace server that translates Linux syscall numbers and semantics to their CASK equivalents. It uses musl libc internally as its POSIX implementation. Software that requires it declares a dependency on `cask-linux-compat` in its service definition; native OROS software has no dependency on it and pays no overhead.
+`lythos-linux-compat` is an optional userspace server that translates Linux syscall numbers and semantics to their Lythos equivalents. It uses musl libc internally as its POSIX implementation. Software that requires it declares a dependency on `lythos-linux-compat` in its service definition; native OROS software has no dependency on it and pays no overhead.
 
 | Property | Value |
 |---|---|
-| Server | `cask-linux-compat` — userspace, optional, OROS only |
-| libc | musl — statically linked inside `cask-linux-compat` only |
+| Server | `lythos-linux-compat` — userspace, optional, OROS only |
+| libc | musl — statically linked inside `lythos-linux-compat` only |
 | Rust std (ported) | `std` via `x86_64-unknown-linux-musl`, routed through the compat server |
 | Linking | Static. Ported binaries link musl; native binaries do not |
 
@@ -172,4 +172,4 @@ Drivers and non-critical services run as isolated userspace processes. A crash i
 
 ## Summary
 
-OROS (Open Runtime Operating System) is a CASK (Capability-Aware System Kernel) microkernel OS with a Btrfs subvolume filesystem, musl libc, and a Rust-native toolchain. The critical triad of `lythd`, `lythdist`, and `lythmsg` provides a minimal, fault-isolated foundation. `rpkg` manages the full software lifecycle — source builds, binary caching, atomic installs, and coordinated rollbacks. The `/lth/` namespace is system-owned; `/cfg` and `/user` are user-adjacent and mutable. All system tooling is split cleanly between `lyth-` daemons and `rp-` user tools, with `lysh` as the POSIX-compliant system shell.
+OROS (Open Runtime Operating System) is a Lythos (Capability-Aware System Kernel) microkernel OS with a Btrfs subvolume filesystem, musl libc, and a Rust-native toolchain. The critical triad of `lythd`, `lythdist`, and `lythmsg` provides a minimal, fault-isolated foundation. `rpkg` manages the full software lifecycle — source builds, binary caching, atomic installs, and coordinated rollbacks. The `/lth/` namespace is system-owned; `/cfg` and `/user` are user-adjacent and mutable. All system tooling is split cleanly between `lyth-` daemons and `rp-` user tools, with `lysh` as the POSIX-compliant system shell.
