@@ -7,13 +7,16 @@
 - [x] `uptime` — print milliseconds since boot via SYS_TIME
 - [x] `free`   — print free physical frames via a new SYS_MEM_STAT syscall
 - [x] `kill <tid>` — terminate a task by ID (new SYS_TASK_KILL syscall)
+- [ ] Pipe support (`cmd1 | cmd2`) — needs SYS_IPC_CREATE plumbing in lysh
+- [ ] I/O redirection (`>`, `<`)
 
 ## Filesystem
 
 - [x] VirtIO block device driver (virtio-blk, MMIO or PCI)
 - [x] Raw block read/write syscalls (SYS_BLK_READ / SYS_BLK_WRITE)
-- [ ] Simple flat filesystem (custom or FAT32)
-- [ ] VFS layer: SYS_OPEN, SYS_READ, SYS_WRITE, SYS_CLOSE, SYS_STAT
+- [ ] RFS kernel driver (`src/rfs.rs`) — on-disk format fully spec'd in `docs/rfs.md`; implement read/write/lookup
+- [ ] mkrfs integration — run `mkrfs` as part of `cargo build` to produce a QEMU disk image automatically
+- [ ] VFS layer: SYS_OPEN, SYS_READ, SYS_WRITE, SYS_CLOSE, SYS_STAT (SYS 22–27, already reserved in syscall table)
 - [ ] lysh `exec <path>` — load and run an ELF off the filesystem
 - [ ] lysh `ls`, `cat`, `cp`, `rm`
 
@@ -31,6 +34,18 @@
 - [ ] Multi-processor support (AP startup, per-CPU scheduler)
 - [ ] Larger default kernel stack (current 16 KiB can be tight)
 - [ ] Kernel ASLR
+- [ ] SYS_MMAP range enforcement — currently no bounds check on virt arg; `syscalls.md` flags this as a planned improvement
+- [ ] Per-process PML4 — all tasks share the kernel PML4; needed for real isolation (ELF loader limitation, `docs/elf.md`)
+- [ ] ELF ASLR — randomise PT_LOAD base address per exec; depends on per-process PML4
+- [ ] Reclaim lythd module frames — PMM reserves 512 KiB at `0x400000` forever; free after the ELF is copied to heap
+- [ ] VirtIO interrupt-driven completion — replace polled spin on `used_ring.idx`; IRQ line already read at init, just unused
+- [ ] IPC timeout / cancellation — tasks that block on empty/full ring wait forever; add a deadline or cancel token (`docs/ipc.md`)
+- [ ] ELF user-facing error reporting — `exec()` panics on malformed ELF; surface a proper error code instead
+
+## lythd / userspace
+
+- [ ] lythdist service manifest format — define how services declare deps, caps, restart policy
+- [ ] lythd: spawn lythdist and lysh automatically after BootInfo recv (currently manual in test ELFs)
 
 ## Display / GUI
 
