@@ -1,0 +1,6763 @@
+{
+  "nodes": [
+    {
+      "id": "g0",
+      "type": "group",
+      "label": "Kernel Core Subsystems",
+      "x": 0,
+      "y": 0,
+      "width": 1980,
+      "height": 2720,
+      "color": "1"
+    },
+    {
+      "id": "n_src_pmm_physaddr_as_u64",
+      "type": "file",
+      "file": ".as_u64().md",
+      "x": 20,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_insert",
+      "type": "file",
+      "file": ".insert().md",
+      "x": 220,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_new",
+      "type": "file",
+      "file": ".new()_2.md",
+      "x": 420,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlock_t_new",
+      "type": "file",
+      "file": ".new()_5.md",
+      "x": 20,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_ipcendpoint_ring_ptr",
+      "type": "file",
+      "file": ".ring_ptr().md",
+      "x": 220,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_bootinfo",
+      "type": "file",
+      "file": "BootInfo.md",
+      "x": 420,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_eptable",
+      "type": "file",
+      "file": "EpTable.md",
+      "x": 20,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_exceptions_exceptionframe",
+      "type": "file",
+      "file": "ExceptionFrame.md",
+      "x": 220,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_globalsched",
+      "type": "file",
+      "file": "GlobalSched.md",
+      "x": 420,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_ipcendpoint",
+      "type": "file",
+      "file": "IpcEndpoint.md",
+      "x": 20,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_physaddr",
+      "type": "file",
+      "file": "PhysAddr.md",
+      "x": 220,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_ringbuffer",
+      "type": "file",
+      "file": "RingBuffer.md",
+      "x": 420,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_scheduler",
+      "type": "file",
+      "file": "Scheduler.md",
+      "x": 20,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_task",
+      "type": "file",
+      "file": "Task.md",
+      "x": 220,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_taskcontext",
+      "type": "file",
+      "file": "TaskContext.md",
+      "x": 420,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_taskstate",
+      "type": "file",
+      "file": "TaskState.md",
+      "x": 20,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_alloc_cap_id",
+      "type": "file",
+      "file": "alloc_cap_id().md",
+      "x": 220,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_alloc_frame",
+      "type": "file",
+      "file": "alloc_frame().md",
+      "x": 420,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_block_and_yield",
+      "type": "file",
+      "file": "block_and_yield().md",
+      "x": 20,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_block_task",
+      "type": "file",
+      "file": "block_task().md",
+      "x": 220,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_build_boot_info",
+      "type": "file",
+      "file": "build_boot_info().md",
+      "x": 420,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_cap_grant",
+      "type": "file",
+      "file": "cap_grant().md",
+      "x": 20,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_cap_inherit",
+      "type": "file",
+      "file": "cap_inherit().md",
+      "x": 220,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_cap_table_ptr",
+      "type": "file",
+      "file": "cap_table_ptr().md",
+      "x": 420,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_check_stack_canary",
+      "type": "file",
+      "file": "check_stack_canary().md",
+      "x": 20,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_core_smoke",
+      "type": "file",
+      "file": "core_smoke().md",
+      "x": 220,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_cpuid_vendor",
+      "type": "file",
+      "file": "cpuid_vendor().md",
+      "x": 420,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_create_endpoint",
+      "type": "file",
+      "file": "create_endpoint().md",
+      "x": 20,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_create_object",
+      "type": "file",
+      "file": "create_object().md",
+      "x": 220,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_create_root_cap",
+      "type": "file",
+      "file": "create_root_cap().md",
+      "x": 420,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_current_entry_and_stack",
+      "type": "file",
+      "file": "current_entry_and_stack().md",
+      "x": 20,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_current_kernel_stack_top",
+      "type": "file",
+      "file": "current_kernel_stack_top().md",
+      "x": 220,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_current_page_table",
+      "type": "file",
+      "file": "current_page_table().md",
+      "x": 420,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_current_task_id",
+      "type": "file",
+      "file": "current_task_id().md",
+      "x": 20,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_endpoint_phys",
+      "type": "file",
+      "file": "endpoint_phys().md",
+      "x": 220,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_enter_userspace",
+      "type": "file",
+      "file": "enter_userspace().md",
+      "x": 420,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_ep_table",
+      "type": "file",
+      "file": "ep_table().md",
+      "x": 20,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_exceptions_exception_handler",
+      "type": "file",
+      "file": "exception_handler().md",
+      "x": 220,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_exceptions_rs",
+      "type": "file",
+      "file": "exceptions.rs.md",
+      "x": 420,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_exec_trampoline",
+      "type": "file",
+      "file": "exec_trampoline().md",
+      "x": 20,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_for_each_task",
+      "type": "file",
+      "file": "for_each_task().md",
+      "x": 220,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_free_frame_count",
+      "type": "file",
+      "file": "free_frame_count().md",
+      "x": 420,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_get_sched",
+      "type": "file",
+      "file": "get_sched().md",
+      "x": 20,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_init",
+      "type": "file",
+      "file": "init()_1.md",
+      "x": 220,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_init",
+      "type": "file",
+      "file": "init()_5.md",
+      "x": 420,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_rs",
+      "type": "file",
+      "file": "ipc.rs.md",
+      "x": 20,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_kernel_pml4",
+      "type": "file",
+      "file": "kernel_pml4().md",
+      "x": 220,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_kill_task",
+      "type": "file",
+      "file": "kill_task().md",
+      "x": 420,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_kmain",
+      "type": "file",
+      "file": "kmain().md",
+      "x": 20,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_rs",
+      "type": "file",
+      "file": "main.rs_1.md",
+      "x": 220,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_map_page",
+      "type": "file",
+      "file": "map_page().md",
+      "x": 420,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_exceptions_page_fault_handler",
+      "type": "file",
+      "file": "page_fault_handler().md",
+      "x": 20,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_panic",
+      "type": "file",
+      "file": "panic().md",
+      "x": 220,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_recv",
+      "type": "file",
+      "file": "recv().md",
+      "x": 420,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_recv_cap",
+      "type": "file",
+      "file": "recv_cap().md",
+      "x": 20,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_send",
+      "type": "file",
+      "file": "send().md",
+      "x": 220,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ipc_send_cap",
+      "type": "file",
+      "file": "send_cap().md",
+      "x": 420,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_set_bootstrap_cap_table",
+      "type": "file",
+      "file": "set_bootstrap_cap_table().md",
+      "x": 20,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_set_rsp0",
+      "type": "file",
+      "file": "set_rsp0().md",
+      "x": 220,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_spawn_kernel_task",
+      "type": "file",
+      "file": "spawn_kernel_task().md",
+      "x": 420,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_spawn_userspace_task",
+      "type": "file",
+      "file": "spawn_userspace_task().md",
+      "x": 20,
+      "y": 1680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_sweep_dead",
+      "type": "file",
+      "file": "sweep_dead().md",
+      "x": 220,
+      "y": 1680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_switch_cr3",
+      "type": "file",
+      "file": "switch_cr3().md",
+      "x": 420,
+      "y": 1680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_syscall_dispatch",
+      "type": "file",
+      "file": "syscall_dispatch().md",
+      "x": 20,
+      "y": 1760,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_rs",
+      "type": "file",
+      "file": "task.rs.md",
+      "x": 220,
+      "y": 1760,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_task_b",
+      "type": "file",
+      "file": "task_b().md",
+      "x": 420,
+      "y": 1760,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_task_exists",
+      "type": "file",
+      "file": "task_exists().md",
+      "x": 20,
+      "y": 1840,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_task_exit",
+      "type": "file",
+      "file": "task_exit().md",
+      "x": 220,
+      "y": 1840,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_task_status_raw",
+      "type": "file",
+      "file": "task_status_raw().md",
+      "x": 420,
+      "y": 1840,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_ticks",
+      "type": "file",
+      "file": "ticks().md",
+      "x": 20,
+      "y": 1920,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_unmap_page",
+      "type": "file",
+      "file": "unmap_page().md",
+      "x": 220,
+      "y": 1920,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_userspace_smoke_task",
+      "type": "file",
+      "file": "userspace_smoke_task().md",
+      "x": 420,
+      "y": 1920,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_vma_insert",
+      "type": "file",
+      "file": "vma_insert().md",
+      "x": 20,
+      "y": 2000,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_vma_remove",
+      "type": "file",
+      "file": "vma_remove().md",
+      "x": 220,
+      "y": 2000,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_wake_task",
+      "type": "file",
+      "file": "wake_task().md",
+      "x": 420,
+      "y": 2000,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_task_yield_task",
+      "type": "file",
+      "file": "yield_task().md",
+      "x": 20,
+      "y": 2080,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g1",
+      "type": "group",
+      "label": "APIC & Interrupt Management",
+      "x": 2060,
+      "y": 0,
+      "width": 1760,
+      "height": 2220,
+      "color": "2"
+    },
+    {
+      "id": "n_claude_bootinfo",
+      "type": "file",
+      "file": "BootInfo message.md",
+      "x": 2080,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_bootinfo",
+      "type": "file",
+      "file": "BootInfo message (lythd boot protocol).md",
+      "x": 2280,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_capkind",
+      "type": "file",
+      "file": "CapKind (Memory, Ipc, Rollback).md",
+      "x": 2480,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_caprights",
+      "type": "file",
+      "file": "CapRights bitflags.md",
+      "x": 2080,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_cap",
+      "type": "file",
+      "file": "Capability System.md",
+      "x": 2280,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_elf",
+      "type": "file",
+      "file": "ELF Loader.md",
+      "x": 2480,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_limitations",
+      "type": "file",
+      "file": "ELF Loader Limitations (no ASLR, no PIE, shared PML4).md",
+      "x": 2080,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_blocking_model",
+      "type": "file",
+      "file": "IPC Blocking Model (per-endpoint wait queue).md",
+      "x": 2280,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_bootinfo_msg",
+      "type": "file",
+      "file": "IPC BootInfo pre-queued message.md",
+      "x": 2480,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_ipc",
+      "type": "file",
+      "file": "IPC Endpoints.md",
+      "x": 2080,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_ring_buffer",
+      "type": "file",
+      "file": "IPC Ring Buffer (4 KiB page).md",
+      "x": 2280,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_ipc_receiver_elf",
+      "type": "file",
+      "file": "IPC_RECEIVER_ELF.md",
+      "x": 2480,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_ipc_sender_elf",
+      "type": "file",
+      "file": "IPC_SENDER_ELF.md",
+      "x": 2080,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_initial_caps",
+      "type": "file",
+      "file": "Initial Boot Capabilities (mem, rollback, boot IPC).md",
+      "x": 2280,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_heap",
+      "type": "file",
+      "file": "Kernel Heap.md",
+      "x": 2480,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_lythd_elf",
+      "type": "file",
+      "file": "LYTHD_ELF embedded blob.md",
+      "x": 2080,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_lythos_kernel",
+      "type": "file",
+      "file": "Lythos Microkernel.md",
+      "x": 2280,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_oros",
+      "type": "file",
+      "file": "OROS userspace repository.md",
+      "x": 2480,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_pt_load",
+      "type": "file",
+      "file": "PT_LOAD segment loading.md",
+      "x": 2080,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_pmm",
+      "type": "file",
+      "file": "Physical Memory Manager (PMM).md",
+      "x": 2280,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_smoke_elf",
+      "type": "file",
+      "file": "SMOKE_ELF (hand-crafted test binary).md",
+      "x": 2480,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_exec",
+      "type": "file",
+      "file": "SYS_EXEC (10).md",
+      "x": 2080,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_ipc_create",
+      "type": "file",
+      "file": "SYS_IPC_CREATE (8).md",
+      "x": 2280,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_ipc_recv",
+      "type": "file",
+      "file": "SYS_IPC_RECV (7).md",
+      "x": 2480,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_ipc_send",
+      "type": "file",
+      "file": "SYS_IPC_SEND (6).md",
+      "x": 2080,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_task_exit",
+      "type": "file",
+      "file": "SYS_TASK_EXIT (1).md",
+      "x": 2280,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_yield",
+      "type": "file",
+      "file": "SYS_YIELD (0).md",
+      "x": 2480,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_syscall",
+      "type": "file",
+      "file": "Syscall Dispatch.md",
+      "x": 2080,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_entry_mechanism",
+      "type": "file",
+      "file": "Syscall Entry (LSTARFMASKsysretq).md",
+      "x": 2280,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_task",
+      "type": "file",
+      "file": "Task Scheduler.md",
+      "x": 2480,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_vmm",
+      "type": "file",
+      "file": "Virtual Memory Manager (VMM).md",
+      "x": 2080,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_alloc_user_stack",
+      "type": "file",
+      "file": "alloc_user_stack.md",
+      "x": 2280,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_apic_eoi",
+      "type": "file",
+      "file": "apiceoi.md",
+      "x": 2480,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_block_and_yield",
+      "type": "file",
+      "file": "block_and_yield.md",
+      "x": 2080,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_cap_inherit",
+      "type": "file",
+      "file": "cap_inherit.md",
+      "x": 2280,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_current_task_id",
+      "type": "file",
+      "file": "current_task_id.md",
+      "x": 2480,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_exec",
+      "type": "file",
+      "file": "elfexec (ELF64 loader and spawner).md",
+      "x": 2080,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_exec_trampoline",
+      "type": "file",
+      "file": "exec_trampoline.md",
+      "x": 2280,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pmm_free_frame",
+      "type": "file",
+      "file": "free_frame.md",
+      "x": 2480,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_recv",
+      "type": "file",
+      "file": "ipcrecv.md",
+      "x": 2080,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_recv_cap",
+      "type": "file",
+      "file": "ipcrecv_cap.md",
+      "x": 2280,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_send",
+      "type": "file",
+      "file": "ipcsend.md",
+      "x": 2480,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_send_cap",
+      "type": "file",
+      "file": "ipcsend_cap.md",
+      "x": 2080,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_kmain",
+      "type": "file",
+      "file": "kmain (boot entry point).md",
+      "x": 2280,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_lysh",
+      "type": "file",
+      "file": "lysh interactive shell.md",
+      "x": 2480,
+      "y": 1200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_lythd_protocol",
+      "type": "file",
+      "file": "lythd Boot Protocol.md",
+      "x": 2080,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_cap_delegation",
+      "type": "file",
+      "file": "lythd Capability Delegation Policy.md",
+      "x": 2280,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_init",
+      "type": "file",
+      "file": "lythd init process.md",
+      "x": 2480,
+      "y": 1280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_lythdist",
+      "type": "file",
+      "file": "lythdist service manager.md",
+      "x": 2080,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_lythd_lythos_std",
+      "type": "file",
+      "file": "lythos-std syscall wrapper library.md",
+      "x": 2280,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_apic_send_tlb_shootdown_ipi",
+      "type": "file",
+      "file": "send_tlb_shootdown_ipi.md",
+      "x": 2480,
+      "y": 1360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_tss_set_rsp0",
+      "type": "file",
+      "file": "set_rsp0.md",
+      "x": 2080,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_spawn_userspace_task",
+      "type": "file",
+      "file": "spawn_userspace_task.md",
+      "x": 2280,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_sweep_dead",
+      "type": "file",
+      "file": "sweep_dead.md",
+      "x": 2480,
+      "y": 1440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_switch_cr3",
+      "type": "file",
+      "file": "switch_cr3 (CR3 + TSSRSP update).md",
+      "x": 2080,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_task_exit",
+      "type": "file",
+      "file": "task_exit.md",
+      "x": 2280,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_apic_timer_interrupt_handler",
+      "type": "file",
+      "file": "timer_interrupt_handler.md",
+      "x": 2480,
+      "y": 1520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_apic_tlb_shootdown_handler",
+      "type": "file",
+      "file": "tlb_shootdown_handler.md",
+      "x": 2080,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_wake_task",
+      "type": "file",
+      "file": "wake_task.md",
+      "x": 2280,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_write_initial_stack_frame",
+      "type": "file",
+      "file": "write_initial_stack_frame.md",
+      "x": 2480,
+      "y": 1600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_yield_task",
+      "type": "file",
+      "file": "yield_task.md",
+      "x": 2080,
+      "y": 1680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g2",
+      "type": "group",
+      "label": "ELF Loader & Process Launch",
+      "x": 3900,
+      "y": 0,
+      "width": 1540,
+      "height": 1520,
+      "color": "3"
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_address",
+      "type": "file",
+      "file": ".address().md",
+      "x": 3920,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr_as_u64",
+      "type": "file",
+      "file": ".as_u64()_1.md",
+      "x": 4120,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pageflags_bitor",
+      "type": "file",
+      "file": ".bitor().md",
+      "x": 4320,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_clear",
+      "type": "file",
+      "file": ".clear().md",
+      "x": 3920,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_is_huge",
+      "type": "file",
+      "file": ".is_huge().md",
+      "x": 4120,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_is_present",
+      "type": "file",
+      "file": ".is_present().md",
+      "x": 4320,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr_p1_idx",
+      "type": "file",
+      "file": ".p1_idx().md",
+      "x": 3920,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr_p2_idx",
+      "type": "file",
+      "file": ".p2_idx().md",
+      "x": 4120,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr_p3_idx",
+      "type": "file",
+      "file": ".p3_idx().md",
+      "x": 4320,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr_p4_idx",
+      "type": "file",
+      "file": ".p4_idx().md",
+      "x": 3920,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_set",
+      "type": "file",
+      "file": ".set().md",
+      "x": 4120,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_table",
+      "type": "file",
+      "file": ".table().md",
+      "x": 4320,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry_zero",
+      "type": "file",
+      "file": ".zero()_1.md",
+      "x": 3920,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_elf64ehdr",
+      "type": "file",
+      "file": "Elf64Ehdr.md",
+      "x": 4120,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_elf64phdr",
+      "type": "file",
+      "file": "Elf64Phdr.md",
+      "x": 4320,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_elferror",
+      "type": "file",
+      "file": "ElfError.md",
+      "x": 3920,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pageflags",
+      "type": "file",
+      "file": "PageFlags.md",
+      "x": 4120,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetable",
+      "type": "file",
+      "file": "PageTable.md",
+      "x": 4320,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_pagetableentry",
+      "type": "file",
+      "file": "PageTableEntry.md",
+      "x": 3920,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_virtaddr",
+      "type": "file",
+      "file": "VirtAddr.md",
+      "x": 4120,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_alloc_table",
+      "type": "file",
+      "file": "alloc_table().md",
+      "x": 4320,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_alloc_user_stack_into",
+      "type": "file",
+      "file": "alloc_user_stack_into().md",
+      "x": 3920,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_create_user_page_table",
+      "type": "file",
+      "file": "create_user_page_table().md",
+      "x": 4120,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_rs",
+      "type": "file",
+      "file": "elf.rs.md",
+      "x": 4320,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_exec",
+      "type": "file",
+      "file": "exec().md",
+      "x": 3920,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_free_user_page_table",
+      "type": "file",
+      "file": "free_user_page_table().md",
+      "x": 4120,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_init",
+      "type": "file",
+      "file": "init()_10.md",
+      "x": 4320,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_load_segment_into",
+      "type": "file",
+      "file": "load_segment_into().md",
+      "x": 3920,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_map_page_in",
+      "type": "file",
+      "file": "map_page_in().md",
+      "x": 4120,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_query_page",
+      "type": "file",
+      "file": "query_page().md",
+      "x": 4320,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_query_page_in",
+      "type": "file",
+      "file": "query_page_in().md",
+      "x": 3920,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_read_ehdr",
+      "type": "file",
+      "file": "read_ehdr().md",
+      "x": 4120,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_read_phdr",
+      "type": "file",
+      "file": "read_phdr().md",
+      "x": 4320,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_segment_flags",
+      "type": "file",
+      "file": "segment_flags().md",
+      "x": 3920,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_unmap_page_in",
+      "type": "file",
+      "file": "unmap_page_in().md",
+      "x": 4120,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_update_page_flags",
+      "type": "file",
+      "file": "update_page_flags().md",
+      "x": 4320,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_update_page_flags_in",
+      "type": "file",
+      "file": "update_page_flags_in().md",
+      "x": 3920,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_rs",
+      "type": "file",
+      "file": "vmm.rs.md",
+      "x": 4120,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_walk_existing",
+      "type": "file",
+      "file": "walk_existing().md",
+      "x": 4320,
+      "y": 1040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_vmm_walk_or_create",
+      "type": "file",
+      "file": "walk_or_create().md",
+      "x": 3920,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_elf_write_initial_stack_frame",
+      "type": "file",
+      "file": "write_initial_stack_frame().md",
+      "x": 4120,
+      "y": 1120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g3",
+      "type": "group",
+      "label": "Capability System (Code)",
+      "x": 5520,
+      "y": 0,
+      "width": 1320,
+      "height": 1320,
+      "color": "4"
+    },
+    {
+      "id": "n_src_cap_kotable_create",
+      "type": "file",
+      "file": ".create().md",
+      "x": 5540,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kotable_destroy",
+      "type": "file",
+      "file": ".destroy().md",
+      "x": 5740,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_find_children",
+      "type": "file",
+      "file": ".find_children().md",
+      "x": 5940,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caphandle_generation",
+      "type": "file",
+      "file": ".generation()_1.md",
+      "x": 5540,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kernelobjectref_generation",
+      "type": "file",
+      "file": ".generation().md",
+      "x": 5740,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_get",
+      "type": "file",
+      "file": ".get()_1.md",
+      "x": 5940,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kotable_get",
+      "type": "file",
+      "file": ".get().md",
+      "x": 5540,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_get_mut",
+      "type": "file",
+      "file": ".get_mut()_1.md",
+      "x": 5740,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caprights_has",
+      "type": "file",
+      "file": ".has().md",
+      "x": 5940,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_has_kind",
+      "type": "file",
+      "file": ".has_kind().md",
+      "x": 5540,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_has_kind_with_rights",
+      "type": "file",
+      "file": ".has_kind_with_rights().md",
+      "x": 5740,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caphandle_index",
+      "type": "file",
+      "file": ".index()_1.md",
+      "x": 5940,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kernelobjectref_index",
+      "type": "file",
+      "file": ".index().md",
+      "x": 5540,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caprights_intersect",
+      "type": "file",
+      "file": ".intersect().md",
+      "x": 5740,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caphandle_pack",
+      "type": "file",
+      "file": ".pack()_1.md",
+      "x": 5940,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kernelobjectref_pack",
+      "type": "file",
+      "file": ".pack().md",
+      "x": 5540,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable_take",
+      "type": "file",
+      "file": ".take().md",
+      "x": 5740,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caperror",
+      "type": "file",
+      "file": "CapError.md",
+      "x": 5940,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caphandle",
+      "type": "file",
+      "file": "CapHandle.md",
+      "x": 5540,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capkind",
+      "type": "file",
+      "file": "CapKind.md",
+      "x": 5740,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_caprights",
+      "type": "file",
+      "file": "CapRights.md",
+      "x": 5940,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capslot",
+      "type": "file",
+      "file": "CapSlot.md",
+      "x": 5540,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capability",
+      "type": "file",
+      "file": "Capability.md",
+      "x": 5740,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_capabilitytable",
+      "type": "file",
+      "file": "CapabilityTable.md",
+      "x": 5940,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_globalkotable",
+      "type": "file",
+      "file": "GlobalKoTable.md",
+      "x": 5540,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kernelobject",
+      "type": "file",
+      "file": "KernelObject.md",
+      "x": 5740,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kernelobjectref",
+      "type": "file",
+      "file": "KernelObjectRef.md",
+      "x": 5940,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_koslot",
+      "type": "file",
+      "file": "KoSlot.md",
+      "x": 5540,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_kotable",
+      "type": "file",
+      "file": "KoTable.md",
+      "x": 5740,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_rs",
+      "type": "file",
+      "file": "cap.rs.md",
+      "x": 5940,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_cap_cascade_revoke",
+      "type": "file",
+      "file": "cap_cascade_revoke().md",
+      "x": 5540,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_cap_revoke",
+      "type": "file",
+      "file": "cap_revoke().md",
+      "x": 5740,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_cascade_force",
+      "type": "file",
+      "file": "cascade_force().md",
+      "x": 5940,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_destroy_object",
+      "type": "file",
+      "file": "destroy_object().md",
+      "x": 5540,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_get_object",
+      "type": "file",
+      "file": "get_object().md",
+      "x": 5740,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_cap_ko_table",
+      "type": "file",
+      "file": "ko_table().md",
+      "x": 5940,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g4",
+      "type": "group",
+      "label": "Kernel Initialization",
+      "x": 6920,
+      "y": 0,
+      "width": 1320,
+      "height": 1320,
+      "color": "5"
+    },
+    {
+      "id": "n_mkrfs_allocator",
+      "type": "file",
+      "file": "Allocator (block bitmap allocator).md",
+      "x": 6940,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_main_bootinfo",
+      "type": "file",
+      "file": "BootInfo (boot message struct).md",
+      "x": 7140,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_disk",
+      "type": "file",
+      "file": "Disk (image file IO).md",
+      "x": 7340,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_inodetable",
+      "type": "file",
+      "file": "InodeTable (RFS inode table).md",
+      "x": 6940,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pmm_alloc_frame",
+      "type": "file",
+      "file": "alloc_frame.md",
+      "x": 7140,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pmm_alloc_frames_contiguous",
+      "type": "file",
+      "file": "alloc_frames_contiguous.md",
+      "x": 7340,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_alloc_user_stack_into",
+      "type": "file",
+      "file": "alloc_user_stack_into.md",
+      "x": 6940,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_apic_init",
+      "type": "file",
+      "file": "apicinit.md",
+      "x": 7140,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_main_build_boot_info",
+      "type": "file",
+      "file": "build_boot_info.md",
+      "x": 7340,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_main_core_smoke",
+      "type": "file",
+      "file": "core_smoke (integration checklist).md",
+      "x": 6940,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_create_file",
+      "type": "file",
+      "file": "create_file.md",
+      "x": 7140,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_create_object",
+      "type": "file",
+      "file": "create_object.md",
+      "x": 7340,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_create_root_cap",
+      "type": "file",
+      "file": "create_root_cap.md",
+      "x": 6940,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_create_symlink",
+      "type": "file",
+      "file": "create_symlink.md",
+      "x": 7140,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pmm_free_frame_count",
+      "type": "file",
+      "file": "free_frame_count.md",
+      "x": 7340,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_gdt_init",
+      "type": "file",
+      "file": "gdtinit.md",
+      "x": 6940,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_heap_init",
+      "type": "file",
+      "file": "heapinit.md",
+      "x": 7140,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_idt_init",
+      "type": "file",
+      "file": "idtinit.md",
+      "x": 7340,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ioapic_init",
+      "type": "file",
+      "file": "ioapicinit.md",
+      "x": 6940,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ioapic_map_irq",
+      "type": "file",
+      "file": "ioapicmap_irq.md",
+      "x": 7140,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_create_endpoint",
+      "type": "file",
+      "file": "ipccreate_endpoint.md",
+      "x": 7340,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_main_kmain",
+      "type": "file",
+      "file": "kmain (kernel entry point).md",
+      "x": 6940,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_elf_load_segment_into",
+      "type": "file",
+      "file": "load_segment_into.md",
+      "x": 7140,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_main",
+      "type": "file",
+      "file": "mkrfs main (RFS_V1 formatter).md",
+      "x": 7340,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pci_find_device",
+      "type": "file",
+      "file": "pcifind_device.md",
+      "x": 6940,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_pmm_init",
+      "type": "file",
+      "file": "pmminit (PMM initializer).md",
+      "x": 7140,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_populate",
+      "type": "file",
+      "file": "populate (recursive dir builder).md",
+      "x": 7340,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_idt_register_irq",
+      "type": "file",
+      "file": "register_irq.md",
+      "x": 6940,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_set_bootstrap_cap_table",
+      "type": "file",
+      "file": "set_bootstrap_cap_table.md",
+      "x": 7140,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_spawn_kernel_task",
+      "type": "file",
+      "file": "spawn_kernel_task.md",
+      "x": 7340,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_init",
+      "type": "file",
+      "file": "taskinit.md",
+      "x": 6940,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_tss_load",
+      "type": "file",
+      "file": "tssload.md",
+      "x": 7140,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_tss_tss_addr",
+      "type": "file",
+      "file": "tss_addr.md",
+      "x": 7340,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_main_userspace_smoke_task",
+      "type": "file",
+      "file": "userspace_smoke_task.md",
+      "x": 6940,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_virtio_blk_init",
+      "type": "file",
+      "file": "virtio_blkinit.md",
+      "x": 7140,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_write_superblock",
+      "type": "file",
+      "file": "write_superblock.md",
+      "x": 7340,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g5",
+      "type": "group",
+      "label": "Documentation Index",
+      "x": 8320,
+      "y": 0,
+      "width": 1320,
+      "height": 1320,
+      "color": "6"
+    },
+    {
+      "id": "n_docs_tasks_context_switch",
+      "type": "file",
+      "file": "Context Switch (docs).md",
+      "x": 8340,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_memory_heap",
+      "type": "file",
+      "file": "Heap Documentation.md",
+      "x": 8540,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_boot_sequence",
+      "type": "file",
+      "file": "Kernel Boot Sequence (docsboot.md).md",
+      "x": 8740,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_readme_docindex",
+      "type": "file",
+      "file": "Lythos Internal Docs Index.md",
+      "x": 8340,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_memory_pmm",
+      "type": "file",
+      "file": "PMM Documentation.md",
+      "x": 8540,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_pageflags",
+      "type": "file",
+      "file": "PageFlags_1.md",
+      "x": 8740,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_pagetable",
+      "type": "file",
+      "file": "PageTable (512 entries).md",
+      "x": 8340,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_pagetableentry",
+      "type": "file",
+      "file": "PageTableEntry_1.md",
+      "x": 8540,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_tasks_scheduler",
+      "type": "file",
+      "file": "Round-Robin Scheduler (docs).md",
+      "x": 8740,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_syscall_kern_rsp",
+      "type": "file",
+      "file": "SYSCALL_KERN_RSP.md",
+      "x": 8340,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_serialport",
+      "type": "file",
+      "file": "SerialPort_1.md",
+      "x": 8540,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_try_read_byte",
+      "type": "file",
+      "file": "SerialPorttry_read_byte.md",
+      "x": 8740,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_write_byte",
+      "type": "file",
+      "file": "SerialPortwrite_byte.md",
+      "x": 8340,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_spinlock",
+      "type": "file",
+      "file": "SpinLockT_1.md",
+      "x": 8540,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_spinlockguard",
+      "type": "file",
+      "file": "SpinLockGuardT.md",
+      "x": 8740,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_tasks_task_model",
+      "type": "file",
+      "file": "Task Model (docs).md",
+      "x": 8340,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_tasks_user_stack",
+      "type": "file",
+      "file": "User Stack Layout (docs).md",
+      "x": 8540,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_docs_memory_vmm",
+      "type": "file",
+      "file": "VMM Documentation.md",
+      "x": 8740,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_virtaddr",
+      "type": "file",
+      "file": "VirtAddr_1.md",
+      "x": 8340,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_enter_userspace",
+      "type": "file",
+      "file": "enter_userspace.md",
+      "x": 8540,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_enter_userspace_asm",
+      "type": "file",
+      "file": "enter_userspace_asm (asm).md",
+      "x": 8740,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_inb",
+      "type": "file",
+      "file": "inb (IO port read).md",
+      "x": 8340,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_outb",
+      "type": "file",
+      "file": "outb (IO port write).md",
+      "x": 8540,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_init",
+      "type": "file",
+      "file": "serialinit.md",
+      "x": 8740,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_create_user_page_table",
+      "type": "file",
+      "file": "vmmcreate_user_page_table.md",
+      "x": 8340,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_free_user_page_table",
+      "type": "file",
+      "file": "vmmfree_user_page_table.md",
+      "x": 8540,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_init",
+      "type": "file",
+      "file": "vmminit.md",
+      "x": 8740,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_map_page",
+      "type": "file",
+      "file": "vmmmap_page.md",
+      "x": 8340,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_map_page_in",
+      "type": "file",
+      "file": "vmmmap_page_in.md",
+      "x": 8540,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_query_page",
+      "type": "file",
+      "file": "vmmquery_page.md",
+      "x": 8740,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_query_page_in",
+      "type": "file",
+      "file": "vmmquery_page_in.md",
+      "x": 8340,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_unmap_page",
+      "type": "file",
+      "file": "vmmunmap_page.md",
+      "x": 8540,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_unmap_page_in",
+      "type": "file",
+      "file": "vmmunmap_page_in.md",
+      "x": 8740,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_update_page_flags",
+      "type": "file",
+      "file": "vmmupdate_page_flags.md",
+      "x": 8340,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_walk_existing",
+      "type": "file",
+      "file": "walk_existing.md",
+      "x": 8540,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_vmm_walk_or_create",
+      "type": "file",
+      "file": "walk_or_create.md",
+      "x": 8740,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g6",
+      "type": "group",
+      "label": "Physical Memory Manager",
+      "x": 9720,
+      "y": 0,
+      "width": 1320,
+      "height": 1320,
+      "color": "1"
+    },
+    {
+      "id": "n_src_virtio_blk_virtioblkdev_submit",
+      "type": "file",
+      "file": ".submit().md",
+      "x": 9740,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_virtioblkdev_write_desc",
+      "type": "file",
+      "file": ".write_desc().md",
+      "x": 9940,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_devstate",
+      "type": "file",
+      "file": "DevState.md",
+      "x": 10140,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_virtioblkdev",
+      "type": "file",
+      "file": "VirtioBlkDev.md",
+      "x": 9740,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_alloc_frames_contiguous",
+      "type": "file",
+      "file": "alloc_frames_contiguous().md",
+      "x": 9940,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_avail_idx_pa",
+      "type": "file",
+      "file": "avail_idx_pa().md",
+      "x": 10140,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_avail_pa",
+      "type": "file",
+      "file": "avail_pa().md",
+      "x": 9740,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_avail_ring_pa",
+      "type": "file",
+      "file": "avail_ring_pa().md",
+      "x": 9940,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_capacity_sectors",
+      "type": "file",
+      "file": "capacity_sectors().md",
+      "x": 10140,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_desc_pa",
+      "type": "file",
+      "file": "desc_pa().md",
+      "x": 9740,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_dev_mut",
+      "type": "file",
+      "file": "dev_mut().md",
+      "x": 9940,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_dev_ref",
+      "type": "file",
+      "file": "dev_ref().md",
+      "x": 10140,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_free_frame",
+      "type": "file",
+      "file": "free_frame().md",
+      "x": 9740,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_free_frames_contiguous",
+      "type": "file",
+      "file": "free_frames_contiguous().md",
+      "x": 9940,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_inb",
+      "type": "file",
+      "file": "inb().md",
+      "x": 10140,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_init",
+      "type": "file",
+      "file": "init()_7.md",
+      "x": 9740,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_init",
+      "type": "file",
+      "file": "init().md",
+      "x": 9940,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_inl",
+      "type": "file",
+      "file": "inl().md",
+      "x": 10140,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_is_present",
+      "type": "file",
+      "file": "is_present().md",
+      "x": 9740,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_is_used",
+      "type": "file",
+      "file": "is_used().md",
+      "x": 9940,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_mark_range_free",
+      "type": "file",
+      "file": "mark_range_free().md",
+      "x": 10140,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_mark_range_used",
+      "type": "file",
+      "file": "mark_range_used().md",
+      "x": 9740,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_outb",
+      "type": "file",
+      "file": "outb().md",
+      "x": 9940,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_outl",
+      "type": "file",
+      "file": "outl().md",
+      "x": 10140,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_outw",
+      "type": "file",
+      "file": "outw().md",
+      "x": 9740,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_parse_mb1",
+      "type": "file",
+      "file": "parse_mb1().md",
+      "x": 9940,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_parse_mb2",
+      "type": "file",
+      "file": "parse_mb2().md",
+      "x": 10140,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_rs",
+      "type": "file",
+      "file": "pmm.rs.md",
+      "x": 9740,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_read_sector",
+      "type": "file",
+      "file": "read_sector().md",
+      "x": 9940,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_set_free",
+      "type": "file",
+      "file": "set_free().md",
+      "x": 10140,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pmm_set_used",
+      "type": "file",
+      "file": "set_used().md",
+      "x": 9740,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_used_idx_pa",
+      "type": "file",
+      "file": "used_idx_pa().md",
+      "x": 9940,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_used_pa",
+      "type": "file",
+      "file": "used_pa().md",
+      "x": 10140,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_rs",
+      "type": "file",
+      "file": "virtio_blk.rs.md",
+      "x": 9740,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_virtio_blk_write_sector",
+      "type": "file",
+      "file": "write_sector().md",
+      "x": 9940,
+      "y": 960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g7",
+      "type": "group",
+      "label": "RFS Allocator & Main",
+      "x": 11120,
+      "y": 0,
+      "width": 1320,
+      "height": 1220,
+      "color": "2"
+    },
+    {
+      "id": "n_src_main_allocator_alloc",
+      "type": "file",
+      "file": ".alloc().md",
+      "x": 11140,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inodetable_alloc",
+      "type": "file",
+      "file": ".alloc()_1.md",
+      "x": 11340,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inodetable_get_mut",
+      "type": "file",
+      "file": ".get_mut().md",
+      "x": 11540,
+      "y": 80,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_allocator_new",
+      "type": "file",
+      "file": ".new().md",
+      "x": 11140,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inodetable_new",
+      "type": "file",
+      "file": ".new()_1.md",
+      "x": 11340,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_disk_open",
+      "type": "file",
+      "file": ".open().md",
+      "x": 11540,
+      "y": 160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_disk_read_block",
+      "type": "file",
+      "file": ".read_block().md",
+      "x": 11140,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inode_serialise",
+      "type": "file",
+      "file": ".serialise().md",
+      "x": 11340,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inodetable_write_all",
+      "type": "file",
+      "file": ".write_all().md",
+      "x": 11540,
+      "y": 240,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_allocator_write_bitmap",
+      "type": "file",
+      "file": ".write_bitmap().md",
+      "x": 11140,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_disk_write_block",
+      "type": "file",
+      "file": ".write_block().md",
+      "x": 11340,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_allocator",
+      "type": "file",
+      "file": "Allocator.md",
+      "x": 11540,
+      "y": 320,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_disk",
+      "type": "file",
+      "file": "Disk.md",
+      "x": 11140,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inode",
+      "type": "file",
+      "file": "Inode.md",
+      "x": 11340,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_inodetable",
+      "type": "file",
+      "file": "InodeTable.md",
+      "x": 11540,
+      "y": 400,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_attach_extent",
+      "type": "file",
+      "file": "attach_extent().md",
+      "x": 11140,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_count_free",
+      "type": "file",
+      "file": "count_free().md",
+      "x": 11340,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_create_file",
+      "type": "file",
+      "file": "create_file().md",
+      "x": 11540,
+      "y": 480,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_create_symlink",
+      "type": "file",
+      "file": "create_symlink().md",
+      "x": 11140,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_find_last_entry_off",
+      "type": "file",
+      "file": "find_last_entry_off().md",
+      "x": 11340,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_get_u32",
+      "type": "file",
+      "file": "get_u32().md",
+      "x": 11540,
+      "y": 560,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_layout_dir_entries",
+      "type": "file",
+      "file": "layout_dir_entries().md",
+      "x": 11140,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_main",
+      "type": "file",
+      "file": "main().md",
+      "x": 11340,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_tools_mkrfs_src_main_rs",
+      "type": "file",
+      "file": "main.rs.md",
+      "x": 11540,
+      "y": 640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_make_extent",
+      "type": "file",
+      "file": "make_extent().md",
+      "x": 11140,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_parse_size",
+      "type": "file",
+      "file": "parse_size().md",
+      "x": 11340,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_populate",
+      "type": "file",
+      "file": "populate().md",
+      "x": 11540,
+      "y": 720,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_populate_with_ino",
+      "type": "file",
+      "file": "populate_with_ino().md",
+      "x": 11140,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_put_u16",
+      "type": "file",
+      "file": "put_u16().md",
+      "x": 11340,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_put_u32",
+      "type": "file",
+      "file": "put_u32().md",
+      "x": 11540,
+      "y": 800,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_put_u64",
+      "type": "file",
+      "file": "put_u64().md",
+      "x": 11140,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_write_dir_data",
+      "type": "file",
+      "file": "write_dir_data().md",
+      "x": 11340,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_main_write_superblock",
+      "type": "file",
+      "file": "write_superblock().md",
+      "x": 11540,
+      "y": 880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g8",
+      "type": "group",
+      "label": "Build Plan & Exceptions",
+      "x": 0,
+      "y": 2800,
+      "width": 1320,
+      "height": 1220,
+      "color": "3"
+    },
+    {
+      "id": "n_buildplan_14steps",
+      "type": "file",
+      "file": "14-Step Build Plan.md",
+      "x": 20,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_rollback_timer",
+      "type": "file",
+      "file": "30-second StabilityRollback Timer.md",
+      "x": 220,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_btrfs_layout",
+      "type": "file",
+      "file": "Btrfs Subvolume Layout (@core, @store, @cfg, @home).md",
+      "x": 420,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_error_codes",
+      "type": "file",
+      "file": "Error Codes (ENOSYS, ENOCAP, ENOPERM, EINVAL).md",
+      "x": 20,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_exceptions_exceptionframe",
+      "type": "file",
+      "file": "ExceptionFrame_1.md",
+      "x": 220,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_todo_filesystem_tasks",
+      "type": "file",
+      "file": "Filesystem TODO (FAT32VFSlysh exec).md",
+      "x": 420,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_readme_lythos_project",
+      "type": "file",
+      "file": "Lythos Project (README).md",
+      "x": 20,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_todo_networking_tasks",
+      "type": "file",
+      "file": "Networking TODO (virtio-netTCP).md",
+      "x": 220,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_oros",
+      "type": "file",
+      "file": "OROS (Open Runtime Operating System).md",
+      "x": 420,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_boot_sequence",
+      "type": "file",
+      "file": "OROS Boot Sequence.md",
+      "x": 20,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_serial_global",
+      "type": "file",
+      "file": "SERIAL (global SpinLockSerialPort).md",
+      "x": 220,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_smap_enabled",
+      "type": "file",
+      "file": "SMAP_ENABLED (AtomicBool).md",
+      "x": 420,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_cap_grant",
+      "type": "file",
+      "file": "SYS_CAP_GRANT (4).md",
+      "x": 20,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_numbers",
+      "type": "file",
+      "file": "Syscall Numbers (SYS_YIELD..SYS_BLK_WRITE).md",
+      "x": 220,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_syscallframe",
+      "type": "file",
+      "file": "SyscallFrame_1.md",
+      "x": 420,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_exceptions_exception_handler",
+      "type": "file",
+      "file": "exception_handler.md",
+      "x": 20,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_kprint_macro",
+      "type": "file",
+      "file": "kprint! macro.md",
+      "x": 220,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_serial_kprintln_macro",
+      "type": "file",
+      "file": "kprintln! macro.md",
+      "x": 420,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_lysh",
+      "type": "file",
+      "file": "lysh (system shell).md",
+      "x": 20,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_lythd",
+      "type": "file",
+      "file": "lythd (PID 1 supervisor).md",
+      "x": 220,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_lythdist",
+      "type": "file",
+      "file": "lythdist (capability distributor).md",
+      "x": 420,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_lythmsg",
+      "type": "file",
+      "file": "lythmsg (IPC bus).md",
+      "x": 20,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_linux_compat",
+      "type": "file",
+      "file": "lythos-linux-compat (Linux compat server).md",
+      "x": 220,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_lythos_std",
+      "type": "file",
+      "file": "lythos-std (native runtime).md",
+      "x": 420,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_exceptions_page_fault_handler",
+      "type": "file",
+      "file": "page_fault_handler.md",
+      "x": 20,
+      "y": 3520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_rpbreak",
+      "type": "file",
+      "file": "rpbreak (chaos engineering tool).md",
+      "x": 220,
+      "y": 3520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_rpkg",
+      "type": "file",
+      "file": "rpkg (package manager).md",
+      "x": 420,
+      "y": 3520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_oros_doc_rpview",
+      "type": "file",
+      "file": "rpview (service TUI).md",
+      "x": 20,
+      "y": 3600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_init",
+      "type": "file",
+      "file": "syscallinit.md",
+      "x": 220,
+      "y": 3600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_syscall_dispatch",
+      "type": "file",
+      "file": "syscall_dispatch.md",
+      "x": 420,
+      "y": 3600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_syscall_entry",
+      "type": "file",
+      "file": "syscall_entry (asm stub).md",
+      "x": 20,
+      "y": 3680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_valid_user_range",
+      "type": "file",
+      "file": "valid_user_range.md",
+      "x": 220,
+      "y": 3680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_with_user_access",
+      "type": "file",
+      "file": "with_user_access (SMAP window).md",
+      "x": 420,
+      "y": 3680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g9",
+      "type": "group",
+      "label": "Architecture Docs",
+      "x": 2060,
+      "y": 2800,
+      "width": 1320,
+      "height": 1020,
+      "color": "4"
+    },
+    {
+      "id": "n_arch_invariants",
+      "type": "file",
+      "file": "Critical Architecture Invariants.md",
+      "x": 2080,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_ioapic",
+      "type": "file",
+      "file": "IOAPIC Driver (srcioapic.rs).md",
+      "x": 2280,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_ioapic_rte",
+      "type": "file",
+      "file": "IOAPIC Redirection Table Entry (RTE).md",
+      "x": 2480,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_arch_ioapic",
+      "type": "file",
+      "file": "IOAPIC driver.md",
+      "x": 2080,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_apic",
+      "type": "file",
+      "file": "Local APIC.md",
+      "x": 2280,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_arch_lythos",
+      "type": "file",
+      "file": "Lythos Architecture.md",
+      "x": 2480,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_pci",
+      "type": "file",
+      "file": "PCI Config Space Scanner (srcpci.rs).md",
+      "x": 2080,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_arch_pci",
+      "type": "file",
+      "file": "PCI config space scanner.md",
+      "x": 2280,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_planned_syscalls",
+      "type": "file",
+      "file": "Planned VFS Syscalls (SYS_OPEN=22 through SYS_READDIR=27).md",
+      "x": 2480,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_filesystem",
+      "type": "file",
+      "file": "RFS (Raptor File System).md",
+      "x": 2080,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_block_bitmap",
+      "type": "file",
+      "file": "RFS Block Bitmap.md",
+      "x": 2280,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_direntry",
+      "type": "file",
+      "file": "RFS Directory Entry.md",
+      "x": 2480,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_extent",
+      "type": "file",
+      "file": "RFS Extent (16 bytes).md",
+      "x": 2080,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_fast_symlink",
+      "type": "file",
+      "file": "RFS Fast Symlink (inline target).md",
+      "x": 2280,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_inode",
+      "type": "file",
+      "file": "RFS Inode (128 bytes).md",
+      "x": 2480,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_kernel_driver",
+      "type": "file",
+      "file": "RFS Kernel Driver (planned, srcrfs.rs).md",
+      "x": 2080,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_overflow_block",
+      "type": "file",
+      "file": "RFS Overflow Extent Block.md",
+      "x": 2280,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_rfs_superblock",
+      "type": "file",
+      "file": "RFS Superblock.md",
+      "x": 2480,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_blk_read",
+      "type": "file",
+      "file": "SYS_BLK_READ (20).md",
+      "x": 2080,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_blk_write",
+      "type": "file",
+      "file": "SYS_BLK_WRITE (21).md",
+      "x": 2280,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_claude_spinlock",
+      "type": "file",
+      "file": "SpinLock (interrupt-safe).md",
+      "x": 2480,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_arch_userspace",
+      "type": "file",
+      "file": "Userspace (ring 3) \u2014 lythd, lythdist, lysh.md",
+      "x": 2080,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_virtio_3desc",
+      "type": "file",
+      "file": "VirtIO 3-Descriptor IO Chain.md",
+      "x": 2280,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_virtio_blk",
+      "type": "file",
+      "file": "VirtIO Block Device Driver (srcvirtio_blk.rs).md",
+      "x": 2480,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_arch_virtio_blk",
+      "type": "file",
+      "file": "VirtIO Block Driver.md",
+      "x": 2080,
+      "y": 3520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_drivers_virtio_virtqueue",
+      "type": "file",
+      "file": "VirtIO Virtqueue Layout.md",
+      "x": 2280,
+      "y": 3520,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g10",
+      "type": "group",
+      "label": "IDT & Interrupt Descriptors",
+      "x": 3900,
+      "y": 2800,
+      "width": 1100,
+      "height": 920,
+      "color": "5"
+    },
+    {
+      "id": "n_src_idt_idtentry_absent",
+      "type": "file",
+      "file": ".absent().md",
+      "x": 3920,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport_init",
+      "type": "file",
+      "file": ".init().md",
+      "x": 4120,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_idtentry_interrupt",
+      "type": "file",
+      "file": ".interrupt().md",
+      "x": 4320,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlock_t_lock",
+      "type": "file",
+      "file": ".lock().md",
+      "x": 3920,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport_new",
+      "type": "file",
+      "file": ".new()_4.md",
+      "x": 4120,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport_try_read_byte",
+      "type": "file",
+      "file": ".try_read_byte().md",
+      "x": 4320,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport_write_byte",
+      "type": "file",
+      "file": ".write_byte().md",
+      "x": 3920,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport_write_str",
+      "type": "file",
+      "file": ".write_str().md",
+      "x": 4120,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_idtentry",
+      "type": "file",
+      "file": "IdtEntry.md",
+      "x": 4320,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_idtptr",
+      "type": "file",
+      "file": "IdtPtr.md",
+      "x": 3920,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_serialport",
+      "type": "file",
+      "file": "SerialPort.md",
+      "x": 4120,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlock",
+      "type": "file",
+      "file": "SpinLock.md",
+      "x": 4320,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlock_t",
+      "type": "file",
+      "file": "SpinLockT.md",
+      "x": 3920,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlockguard",
+      "type": "file",
+      "file": "SpinLockGuard.md",
+      "x": 4120,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_rs",
+      "type": "file",
+      "file": "idt.rs.md",
+      "x": 4320,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_inb",
+      "type": "file",
+      "file": "inb()_2.md",
+      "x": 3920,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_init",
+      "type": "file",
+      "file": "init()_2.md",
+      "x": 4120,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_init",
+      "type": "file",
+      "file": "init()_8.md",
+      "x": 4320,
+      "y": 3280,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_outb",
+      "type": "file",
+      "file": "outb()_2.md",
+      "x": 3920,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_register_irq",
+      "type": "file",
+      "file": "register_irq().md",
+      "x": 4120,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_idt_remap_and_mask_pic",
+      "type": "file",
+      "file": "remap_and_mask_pic().md",
+      "x": 4320,
+      "y": 3360,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_rs",
+      "type": "file",
+      "file": "serial.rs.md",
+      "x": 3920,
+      "y": 3440,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g11",
+      "type": "group",
+      "label": "Capability Docs",
+      "x": 5520,
+      "y": 2800,
+      "width": 880,
+      "height": 620,
+      "color": "6"
+    },
+    {
+      "id": "n_cap_caphandle",
+      "type": "file",
+      "file": "CapHandle (opaque per-task handle).md",
+      "x": 5540,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_capkind",
+      "type": "file",
+      "file": "CapKind (enum MemoryIpcDeviceRollback).md",
+      "x": 5740,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_caprights",
+      "type": "file",
+      "file": "CapRights (bitfield).md",
+      "x": 5940,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_capability",
+      "type": "file",
+      "file": "Capability (kernel capability struct).md",
+      "x": 5540,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_capabilitytable",
+      "type": "file",
+      "file": "CapabilityTable (per-task cap table).md",
+      "x": 5740,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_ipc_ipcendpoint",
+      "type": "file",
+      "file": "IpcEndpoint (kernel IPC state).md",
+      "x": 5940,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_kernelobiect",
+      "type": "file",
+      "file": "KernelObject (enum MemoryIpcDeviceRollback).md",
+      "x": 5540,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_kernelobjectref",
+      "type": "file",
+      "file": "KernelObjectRef (generation-tagged index).md",
+      "x": 5740,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_cap_revoke",
+      "type": "file",
+      "file": "SYS_CAP_REVOKE (5).md",
+      "x": 5940,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_syscall_sys_mmap",
+      "type": "file",
+      "file": "SYS_MMAP (2).md",
+      "x": 5540,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_task",
+      "type": "file",
+      "file": "Task (scheduler task struct).md",
+      "x": 5740,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_task_taskid",
+      "type": "file",
+      "file": "TaskId (u64 type alias).md",
+      "x": 5940,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_cascade_revoke",
+      "type": "file",
+      "file": "cap_cascade_revoke operation.md",
+      "x": 5540,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_cap_grant",
+      "type": "file",
+      "file": "cap_grant.md",
+      "x": 5740,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_cap_cap_revoke",
+      "type": "file",
+      "file": "cap_revoke.md",
+      "x": 5940,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g12",
+      "type": "group",
+      "label": "APIC Hardware Interface",
+      "x": 6920,
+      "y": 2800,
+      "width": 880,
+      "height": 620,
+      "color": "1"
+    },
+    {
+      "id": "n_src_apic_rs",
+      "type": "file",
+      "file": "apic.rs.md",
+      "x": 6940,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_apic_read",
+      "type": "file",
+      "file": "apic_read().md",
+      "x": 7140,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_apic_write",
+      "type": "file",
+      "file": "apic_write().md",
+      "x": 7340,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_disable_pic",
+      "type": "file",
+      "file": "disable_pic().md",
+      "x": 6940,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_eoi",
+      "type": "file",
+      "file": "eoi().md",
+      "x": 7140,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_inb",
+      "type": "file",
+      "file": "inb()_1.md",
+      "x": 7340,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_init",
+      "type": "file",
+      "file": "init()_4.md",
+      "x": 6940,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_outb",
+      "type": "file",
+      "file": "outb()_1.md",
+      "x": 7140,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_pit_wait_ms",
+      "type": "file",
+      "file": "pit_wait_ms().md",
+      "x": 7340,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_read_apic_base",
+      "type": "file",
+      "file": "read_apic_base().md",
+      "x": 6940,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_send_tlb_shootdown_ipi",
+      "type": "file",
+      "file": "send_tlb_shootdown_ipi().md",
+      "x": 7140,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_timer_interrupt_handler",
+      "type": "file",
+      "file": "timer_interrupt_handler().md",
+      "x": 7340,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_apic_tlb_shootdown_handler",
+      "type": "file",
+      "file": "tlb_shootdown_handler().md",
+      "x": 6940,
+      "y": 3200,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g13",
+      "type": "group",
+      "label": "GDT & Segment Setup",
+      "x": 8320,
+      "y": 2800,
+      "width": 880,
+      "height": 520,
+      "color": "2"
+    },
+    {
+      "id": "n_src_tss_tss_zero",
+      "type": "file",
+      "file": ".zero().md",
+      "x": 8340,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_gdt_gdtptr",
+      "type": "file",
+      "file": "GdtPtr.md",
+      "x": 8540,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_gdt_globalgdt",
+      "type": "file",
+      "file": "GlobalGdt.md",
+      "x": 8740,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_globaltss",
+      "type": "file",
+      "file": "GlobalTss.md",
+      "x": 8340,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_tss",
+      "type": "file",
+      "file": "Tss.md",
+      "x": 8540,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_gdt_encode_tss_descriptor",
+      "type": "file",
+      "file": "encode_tss_descriptor().md",
+      "x": 8740,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_gdt_rs",
+      "type": "file",
+      "file": "gdt.rs.md",
+      "x": 8340,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_gdt_init",
+      "type": "file",
+      "file": "init()_6.md",
+      "x": 8540,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_load",
+      "type": "file",
+      "file": "load().md",
+      "x": 8740,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_rs",
+      "type": "file",
+      "file": "tss.rs.md",
+      "x": 8340,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_tss_tss_addr",
+      "type": "file",
+      "file": "tss_addr().md",
+      "x": 8540,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g14",
+      "type": "group",
+      "label": "IOAPIC Driver",
+      "x": 9720,
+      "y": 2800,
+      "width": 880,
+      "height": 520,
+      "color": "3"
+    },
+    {
+      "id": "n_src_ioapic_entry_count",
+      "type": "file",
+      "file": "entry_count().md",
+      "x": 9740,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_init",
+      "type": "file",
+      "file": "init()_3.md",
+      "x": 9940,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_rs",
+      "type": "file",
+      "file": "ioapic.rs.md",
+      "x": 10140,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_ioapic_read",
+      "type": "file",
+      "file": "ioapic_read().md",
+      "x": 9740,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_ioapic_write",
+      "type": "file",
+      "file": "ioapic_write().md",
+      "x": 9940,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_map_irq",
+      "type": "file",
+      "file": "map_irq().md",
+      "x": 10140,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_mask_irq",
+      "type": "file",
+      "file": "mask_irq().md",
+      "x": 9740,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_redir_lo_reg",
+      "type": "file",
+      "file": "redir_lo_reg().md",
+      "x": 9940,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_set_phys_base",
+      "type": "file",
+      "file": "set_phys_base().md",
+      "x": 10140,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_ioapic_unmask_irq",
+      "type": "file",
+      "file": "unmask_irq().md",
+      "x": 9740,
+      "y": 3120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g15",
+      "type": "group",
+      "label": "Kernel Heap Allocator",
+      "x": 11120,
+      "y": 2800,
+      "width": 660,
+      "height": 420,
+      "color": "4"
+    },
+    {
+      "id": "n_src_heap_kernelallocator_alloc",
+      "type": "file",
+      "file": ".alloc()_2.md",
+      "x": 11140,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_kernelallocator_dealloc",
+      "type": "file",
+      "file": ".dealloc().md",
+      "x": 11340,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_kernelallocator_new",
+      "type": "file",
+      "file": ".new()_3.md",
+      "x": 11540,
+      "y": 2880,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_freeblock",
+      "type": "file",
+      "file": "FreeBlock.md",
+      "x": 11140,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_kernelallocator",
+      "type": "file",
+      "file": "KernelAllocator.md",
+      "x": 11340,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_rust_alloc_error_handler",
+      "type": "file",
+      "file": "__rust_alloc_error_handler().md",
+      "x": 11540,
+      "y": 2960,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_align_up",
+      "type": "file",
+      "file": "align_up().md",
+      "x": 11140,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_heap_rs",
+      "type": "file",
+      "file": "heap.rs.md",
+      "x": 11340,
+      "y": 3040,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g16",
+      "type": "group",
+      "label": "PCI Config Scanner",
+      "x": 0,
+      "y": 4100,
+      "width": 660,
+      "height": 420,
+      "color": "5"
+    },
+    {
+      "id": "n_src_pci_pcidevice",
+      "type": "file",
+      "file": "PciDevice.md",
+      "x": 20,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_cfg_read32",
+      "type": "file",
+      "file": "cfg_read32().md",
+      "x": 220,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_cfg_write32",
+      "type": "file",
+      "file": "cfg_write32().md",
+      "x": 420,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_config_addr",
+      "type": "file",
+      "file": "config_addr().md",
+      "x": 20,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_find_device",
+      "type": "file",
+      "file": "find_device().md",
+      "x": 220,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_inl",
+      "type": "file",
+      "file": "inl()_1.md",
+      "x": 420,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_outl",
+      "type": "file",
+      "file": "outl()_1.md",
+      "x": 20,
+      "y": 4340,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_pci_rs",
+      "type": "file",
+      "file": "pci.rs.md",
+      "x": 220,
+      "y": 4340,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g17",
+      "type": "group",
+      "label": "Syscall Entry & Dispatch",
+      "x": 2060,
+      "y": 4100,
+      "width": 660,
+      "height": 420,
+      "color": "6"
+    },
+    {
+      "id": "n_src_syscall_syscallframe",
+      "type": "file",
+      "file": "SyscallFrame.md",
+      "x": 2080,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_init",
+      "type": "file",
+      "file": "init()_9.md",
+      "x": 2280,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_rdmsr",
+      "type": "file",
+      "file": "rdmsr().md",
+      "x": 2480,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_rs",
+      "type": "file",
+      "file": "syscall.rs.md",
+      "x": 2080,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_valid_user_range",
+      "type": "file",
+      "file": "valid_user_range().md",
+      "x": 2280,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_with_user_access",
+      "type": "file",
+      "file": "with_user_access().md",
+      "x": 2480,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_syscall_wrmsr",
+      "type": "file",
+      "file": "wrmsr().md",
+      "x": 2080,
+      "y": 4340,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g18",
+      "type": "group",
+      "label": "SpinLock Guard",
+      "x": 3900,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_src_serial_spinlockguard_t_deref",
+      "type": "file",
+      "file": ".deref().md",
+      "x": 3920,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlockguard_t_deref_mut",
+      "type": "file",
+      "file": ".deref_mut().md",
+      "x": 4120,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlockguard_t_drop",
+      "type": "file",
+      "file": ".drop().md",
+      "x": 4320,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_src_serial_spinlockguard_t",
+      "type": "file",
+      "file": "SpinLockGuard'_, T.md",
+      "x": 3920,
+      "y": 4260,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g19",
+      "type": "group",
+      "label": "VirtIO Block I/O",
+      "x": 5520,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_virtio_blk_submit",
+      "type": "file",
+      "file": "VirtioBlkDevsubmit.md",
+      "x": 5540,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_virtio_blk_read_sector",
+      "type": "file",
+      "file": "virtio_blkread_sector.md",
+      "x": 5740,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_virtio_blk_write_sector",
+      "type": "file",
+      "file": "virtio_blkwrite_sector.md",
+      "x": 5940,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g20",
+      "type": "group",
+      "label": "RFS Host Tool",
+      "x": 6920,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_mkrfs_inode",
+      "type": "file",
+      "file": "Inode (RFS inode struct).md",
+      "x": 6940,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "n_mkrfs_rfs_v1",
+      "type": "file",
+      "file": "RFS_V1 filesystem format.md",
+      "x": 7140,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g21",
+      "type": "group",
+      "label": "TSS",
+      "x": 8320,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_tss_tss",
+      "type": "file",
+      "file": "Tss (task state segment struct).md",
+      "x": 8340,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g22",
+      "type": "group",
+      "label": "IPC Ring Buffer",
+      "x": 9720,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_ipc_ringbuffer",
+      "type": "file",
+      "file": "RingBuffer (4 KiB shared page layout).md",
+      "x": 9740,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g23",
+      "type": "group",
+      "label": "Cascade Revoke",
+      "x": 11120,
+      "y": 4100,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_cap_cap_cascade_revoke",
+      "type": "file",
+      "file": "cap_cascade_revoke.md",
+      "x": 11140,
+      "y": 4180,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g24",
+      "type": "group",
+      "label": "VirtIO Block Device",
+      "x": 0,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_virtio_blk_virtioblkdev",
+      "type": "file",
+      "file": "VirtioBlkDev (driver state).md",
+      "x": 20,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g25",
+      "type": "group",
+      "label": "Heap Allocator",
+      "x": 2060,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_heap_kernelalocator",
+      "type": "file",
+      "file": "KernelAllocator (global heap allocator).md",
+      "x": 2080,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g26",
+      "type": "group",
+      "label": "PCI Device",
+      "x": 3900,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_pci_pcidevice",
+      "type": "file",
+      "file": "PciDevice (PCI device descriptor).md",
+      "x": 3920,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g27",
+      "type": "group",
+      "label": "IDT Entry",
+      "x": 5520,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_idt_idtentry",
+      "type": "file",
+      "file": "IdtEntry (IDT gate descriptor).md",
+      "x": 5540,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g28",
+      "type": "group",
+      "label": "IOAPIC IRQ Mask",
+      "x": 6920,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_ioapic_mask_irq",
+      "type": "file",
+      "file": "ioapicmask_irq.md",
+      "x": 6940,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g29",
+      "type": "group",
+      "label": "APIC Tick Counter",
+      "x": 8320,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_apic_ticks",
+      "type": "file",
+      "file": "apicticks.md",
+      "x": 8340,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g30",
+      "type": "group",
+      "label": "Task State",
+      "x": 9720,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_task_taskstate",
+      "type": "file",
+      "file": "TaskState (enum).md",
+      "x": 9740,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g31",
+      "type": "group",
+      "label": "Task Context",
+      "x": 11120,
+      "y": 4600,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_task_taskcontext",
+      "type": "file",
+      "file": "TaskContext (saved rsp).md",
+      "x": 11140,
+      "y": 4680,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g32",
+      "type": "group",
+      "label": "Task Scheduler",
+      "x": 0,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_task_scheduler",
+      "type": "file",
+      "file": "Scheduler (round-robin scheduler).md",
+      "x": 20,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g33",
+      "type": "group",
+      "label": "Task Block",
+      "x": 2060,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_task_block_task",
+      "type": "file",
+      "file": "block_task.md",
+      "x": 2080,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g34",
+      "type": "group",
+      "label": "Task Cap Table",
+      "x": 3900,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_task_cap_table_ptr",
+      "type": "file",
+      "file": "cap_table_ptr.md",
+      "x": 3920,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g35",
+      "type": "group",
+      "label": "Task Kill",
+      "x": 5520,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_task_kill_task",
+      "type": "file",
+      "file": "kill_task.md",
+      "x": 5540,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g36",
+      "type": "group",
+      "label": "VMA Insert",
+      "x": 6920,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_task_vma_insert",
+      "type": "file",
+      "file": "vma_insert.md",
+      "x": 6940,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g37",
+      "type": "group",
+      "label": "VMA Remove",
+      "x": 8320,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_task_vma_remove",
+      "type": "file",
+      "file": "vma_remove.md",
+      "x": 8340,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g38",
+      "type": "group",
+      "label": "Task Exists",
+      "x": 9720,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_task_task_exists",
+      "type": "file",
+      "file": "task_exists.md",
+      "x": 9740,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g39",
+      "type": "group",
+      "label": "Physical Address",
+      "x": 11120,
+      "y": 5080,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_pmm_physaddr",
+      "type": "file",
+      "file": "PhysAddr (physical address newtype).md",
+      "x": 11140,
+      "y": 5160,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g40",
+      "type": "group",
+      "label": "PMM Contiguous Free",
+      "x": 0,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_pmm_free_frames_contiguous",
+      "type": "file",
+      "file": "free_frames_contiguous.md",
+      "x": 20,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g41",
+      "type": "group",
+      "label": "ELF MMAP Test",
+      "x": 2060,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_elf_mmap_test_elf",
+      "type": "file",
+      "file": "MMAP_TEST_ELF.md",
+      "x": 2080,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g42",
+      "type": "group",
+      "label": "Exec From Userspace",
+      "x": 3900,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_elf_exec_from_user_elf",
+      "type": "file",
+      "file": "EXEC_FROM_USER_ELF.md",
+      "x": 3920,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g43",
+      "type": "group",
+      "label": "Syscall User RSP",
+      "x": 5520,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_syscall_syscall_user_rsp",
+      "type": "file",
+      "file": "SYSCALL_USER_RSP.md",
+      "x": 5540,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g44",
+      "type": "group",
+      "label": "VMM Kernel PML4",
+      "x": 6920,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_vmm_kernel_pml4",
+      "type": "file",
+      "file": "vmmkernel_pml4.md",
+      "x": 6940,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g45",
+      "type": "group",
+      "label": "SMP TODO",
+      "x": 8320,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_todo_smp_tasks",
+      "type": "file",
+      "file": "Multi-processor SMP TODO.md",
+      "x": 8340,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g46",
+      "type": "group",
+      "label": "Display TODO",
+      "x": 9720,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_todo_display_tasks",
+      "type": "file",
+      "file": "DisplayGUI TODO (framebufferwebwm).md",
+      "x": 9740,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g47",
+      "type": "group",
+      "label": "GDT Doc",
+      "x": 11120,
+      "y": 5560,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_claude_gdt",
+      "type": "file",
+      "file": "GDT.md",
+      "x": 11140,
+      "y": 5640,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g48",
+      "type": "group",
+      "label": "TSS Doc",
+      "x": 0,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_claude_tss",
+      "type": "file",
+      "file": "TSS.md",
+      "x": 20,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g49",
+      "type": "group",
+      "label": "IDT Doc",
+      "x": 2060,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_claude_idt",
+      "type": "file",
+      "file": "IDT.md",
+      "x": 2080,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g50",
+      "type": "group",
+      "label": "Serial Doc",
+      "x": 3900,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_claude_serial",
+      "type": "file",
+      "file": "Serial  SpinLock.md",
+      "x": 3920,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g51",
+      "type": "group",
+      "label": "Memory Layout Doc",
+      "x": 5520,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_claude_memory_layout",
+      "type": "file",
+      "file": "Kernel Memory Layout.md",
+      "x": 5540,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g52",
+      "type": "group",
+      "label": "Syscall ABI Doc",
+      "x": 6920,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "5"
+    },
+    {
+      "id": "n_claude_syscall_abi",
+      "type": "file",
+      "file": "Syscall ABI (register conventions).md",
+      "x": 6940,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g53",
+      "type": "group",
+      "label": "Capability Security Model",
+      "x": 8320,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "6"
+    },
+    {
+      "id": "n_cap_security_model",
+      "type": "file",
+      "file": "Capability Security Model (no ambient authority).md",
+      "x": 8340,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g54",
+      "type": "group",
+      "label": "SYS_MUNMAP",
+      "x": 9720,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "1"
+    },
+    {
+      "id": "n_syscall_sys_munmap",
+      "type": "file",
+      "file": "SYS_MUNMAP (3).md",
+      "x": 9740,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g55",
+      "type": "group",
+      "label": "SYS_ROLLBACK",
+      "x": 11120,
+      "y": 6040,
+      "width": 600,
+      "height": 400,
+      "color": "2"
+    },
+    {
+      "id": "n_syscall_sys_rollback",
+      "type": "file",
+      "file": "SYS_ROLLBACK (9).md",
+      "x": 11140,
+      "y": 6120,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g56",
+      "type": "group",
+      "label": "mkrfs Tool",
+      "x": 0,
+      "y": 6520,
+      "width": 600,
+      "height": 400,
+      "color": "3"
+    },
+    {
+      "id": "n_rfs_mkrfs",
+      "type": "file",
+      "file": "mkrfs host formatting tool.md",
+      "x": 20,
+      "y": 6600,
+      "width": 180,
+      "height": 60
+    },
+    {
+      "id": "g57",
+      "type": "group",
+      "label": "IPC Limitations",
+      "x": 2060,
+      "y": 6520,
+      "width": 600,
+      "height": 400,
+      "color": "4"
+    },
+    {
+      "id": "n_ipc_limitations",
+      "type": "file",
+      "file": "IPC Limitations (64-byte fixed, no multicast, no timeout).md",
+      "x": 2080,
+      "y": 6600,
+      "width": 180,
+      "height": 60
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_put_u16",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_put_u16",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_put_u32",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_put_u32",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_put_u64",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_put_u64",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_get_u32",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_get_u32",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_disk",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_disk",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_allocator",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_allocator",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_inode",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_inode",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_make_extent",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_make_extent",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_inodetable",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_inodetable",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_attach_extent",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_attach_extent",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_create_file",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_create_file",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_create_symlink",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_create_symlink",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_layout_dir_entries",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_layout_dir_entries",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_find_last_entry_off",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_find_last_entry_off",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_populate",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_populate",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_populate_with_ino",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_write_dir_data",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_write_superblock",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_write_superblock",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_parse_size",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_parse_size",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_count_free",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_count_free",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_tools_mkrfs_src_main_rs_src_main_main",
+      "fromNode": "n_tools_mkrfs_src_main_rs",
+      "toNode": "n_src_main_main",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u16_src_main_inode_serialise",
+      "fromNode": "n_src_main_put_u16",
+      "toNode": "n_src_main_inode_serialise",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u16_src_main_layout_dir_entries",
+      "fromNode": "n_src_main_put_u16",
+      "toNode": "n_src_main_layout_dir_entries",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_inode_serialise",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_inode_serialise",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_make_extent",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_make_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_attach_extent",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_create_file",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_layout_dir_entries",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_layout_dir_entries",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_write_dir_data",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u32_src_main_write_superblock",
+      "fromNode": "n_src_main_put_u32",
+      "toNode": "n_src_main_write_superblock",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_put_u64_src_main_inode_serialise",
+      "fromNode": "n_src_main_put_u64",
+      "toNode": "n_src_main_inode_serialise",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_get_u32_src_main_attach_extent",
+      "fromNode": "n_src_main_get_u32",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_get_u32_src_main_create_file",
+      "fromNode": "n_src_main_get_u32",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_get_u32_src_main_write_dir_data",
+      "fromNode": "n_src_main_get_u32",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_src_main_disk_open",
+      "fromNode": "n_src_main_disk",
+      "toNode": "n_src_main_disk_open",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_src_main_disk_read_block",
+      "fromNode": "n_src_main_disk",
+      "toNode": "n_src_main_disk_read_block",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_src_main_disk_write_block",
+      "fromNode": "n_src_main_disk",
+      "toNode": "n_src_main_disk_write_block",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_open_src_main_inodetable_new",
+      "fromNode": "n_src_main_disk_open",
+      "toNode": "n_src_main_inodetable_new",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_open_src_main_main",
+      "fromNode": "n_src_main_disk_open",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_read_block_src_main_attach_extent",
+      "fromNode": "n_src_main_disk_read_block",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_inodetable_write_all",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_inodetable_write_all",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_allocator_write_bitmap",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_allocator_write_bitmap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_attach_extent",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_create_file",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_write_dir_data",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_disk_write_block_src_main_write_superblock",
+      "fromNode": "n_src_main_disk_write_block",
+      "toNode": "n_src_main_write_superblock",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_allocator_src_main_allocator_new",
+      "fromNode": "n_src_main_allocator",
+      "toNode": "n_src_main_allocator_new",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_allocator_src_main_allocator_alloc",
+      "fromNode": "n_src_main_allocator",
+      "toNode": "n_src_main_allocator_alloc",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_allocator_src_main_allocator_write_bitmap",
+      "fromNode": "n_src_main_allocator",
+      "toNode": "n_src_main_allocator_write_bitmap",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_allocator_write_bitmap_src_main_main",
+      "fromNode": "n_src_main_allocator_write_bitmap",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inode_src_main_inode_serialise",
+      "fromNode": "n_src_main_inode",
+      "toNode": "n_src_main_inode_serialise",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inode_serialise_src_main_inodetable_write_all",
+      "fromNode": "n_src_main_inode_serialise",
+      "toNode": "n_src_main_inodetable_write_all",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_make_extent_src_main_attach_extent",
+      "fromNode": "n_src_main_make_extent",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_src_main_inodetable_new",
+      "fromNode": "n_src_main_inodetable",
+      "toNode": "n_src_main_inodetable_new",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_src_main_inodetable_alloc",
+      "fromNode": "n_src_main_inodetable",
+      "toNode": "n_src_main_inodetable_alloc",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_src_main_inodetable_get_mut",
+      "fromNode": "n_src_main_inodetable",
+      "toNode": "n_src_main_inodetable_get_mut",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_src_main_inodetable_write_all",
+      "fromNode": "n_src_main_inodetable",
+      "toNode": "n_src_main_inodetable_write_all",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_new_src_main_layout_dir_entries",
+      "fromNode": "n_src_main_inodetable_new",
+      "toNode": "n_src_main_layout_dir_entries",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_new_src_main_populate",
+      "fromNode": "n_src_main_inodetable_new",
+      "toNode": "n_src_main_populate",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_new_src_main_populate_with_ino",
+      "fromNode": "n_src_main_inodetable_new",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_new_src_main_main",
+      "fromNode": "n_src_main_inodetable_new",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_attach_extent",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_attach_extent",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_create_file",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_create_symlink",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_create_symlink",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_populate",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_populate",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_populate_with_ino",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_write_dir_data",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_alloc_src_main_main",
+      "fromNode": "n_src_main_inodetable_alloc",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_create_file",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_create_symlink",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_create_symlink",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_populate",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_populate",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_populate_with_ino",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_write_dir_data",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_get_mut_src_main_main",
+      "fromNode": "n_src_main_inodetable_get_mut",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_inodetable_write_all_src_main_main",
+      "fromNode": "n_src_main_inodetable_write_all",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_attach_extent_src_main_create_file",
+      "fromNode": "n_src_main_attach_extent",
+      "toNode": "n_src_main_create_file",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_attach_extent_src_main_write_dir_data",
+      "fromNode": "n_src_main_attach_extent",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_create_file_src_main_create_symlink",
+      "fromNode": "n_src_main_create_file",
+      "toNode": "n_src_main_create_symlink",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_create_file_src_main_populate",
+      "fromNode": "n_src_main_create_file",
+      "toNode": "n_src_main_populate",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_create_file_src_main_populate_with_ino",
+      "fromNode": "n_src_main_create_file",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_create_symlink_src_main_populate",
+      "fromNode": "n_src_main_create_symlink",
+      "toNode": "n_src_main_populate",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_create_symlink_src_main_populate_with_ino",
+      "fromNode": "n_src_main_create_symlink",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_layout_dir_entries_src_main_find_last_entry_off",
+      "fromNode": "n_src_main_layout_dir_entries",
+      "toNode": "n_src_main_find_last_entry_off",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_layout_dir_entries_src_main_write_dir_data",
+      "fromNode": "n_src_main_layout_dir_entries",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_populate_src_main_populate_with_ino",
+      "fromNode": "n_src_main_populate",
+      "toNode": "n_src_main_populate_with_ino",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_populate_src_main_write_dir_data",
+      "fromNode": "n_src_main_populate",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_populate_src_main_main",
+      "fromNode": "n_src_main_populate",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_populate_with_ino_src_main_write_dir_data",
+      "fromNode": "n_src_main_populate_with_ino",
+      "toNode": "n_src_main_write_dir_data",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_write_dir_data_src_main_main",
+      "fromNode": "n_src_main_write_dir_data",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_write_superblock_src_main_main",
+      "fromNode": "n_src_main_write_superblock",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_parse_size_src_main_main",
+      "fromNode": "n_src_main_parse_size",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_main_count_free_src_main_main",
+      "fromNode": "n_src_main_count_free",
+      "toNode": "n_src_main_main",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_rs_src_tss_tss",
+      "fromNode": "n_src_tss_rs",
+      "toNode": "n_src_tss_tss",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_rs_src_tss_globaltss",
+      "fromNode": "n_src_tss_rs",
+      "toNode": "n_src_tss_globaltss",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_rs_src_tss_tss_addr",
+      "fromNode": "n_src_tss_rs",
+      "toNode": "n_src_tss_tss_addr",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_rs_src_tss_set_rsp0",
+      "fromNode": "n_src_tss_rs",
+      "toNode": "n_src_tss_set_rsp0",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_rs_src_tss_load",
+      "fromNode": "n_src_tss_rs",
+      "toNode": "n_src_tss_load",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_tss_src_tss_tss_zero",
+      "fromNode": "n_src_tss_tss",
+      "toNode": "n_src_tss_tss_zero",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_tss_tss_addr_src_gdt_init",
+      "fromNode": "n_src_tss_tss_addr",
+      "toNode": "n_src_gdt_init",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_tss_set_rsp0_src_task_switch_cr3",
+      "fromNode": "n_src_tss_set_rsp0",
+      "toNode": "n_src_task_switch_cr3",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_tss_set_rsp0_src_syscall_enter_userspace",
+      "fromNode": "n_src_tss_set_rsp0",
+      "toNode": "n_src_syscall_enter_userspace",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_tss_load_src_gdt_init",
+      "fromNode": "n_src_tss_load",
+      "toNode": "n_src_gdt_init",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_ringbuffer",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_ringbuffer",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_ipcendpoint",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_ipcendpoint",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_eptable",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_eptable",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_ep_table",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_ep_table",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_create_endpoint",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_create_endpoint",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_endpoint_phys",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_endpoint_phys",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_send",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_send",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_send_cap",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_send_cap",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_recv_cap",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_recv_cap",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_rs_src_ipc_recv",
+      "fromNode": "n_src_ipc_rs",
+      "toNode": "n_src_ipc_recv",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ipcendpoint_src_ipc_ipcendpoint_ring_ptr",
+      "fromNode": "n_src_ipc_ipcendpoint",
+      "toNode": "n_src_ipc_ipcendpoint_ring_ptr",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ipcendpoint_ring_ptr_src_ipc_send",
+      "fromNode": "n_src_ipc_ipcendpoint_ring_ptr",
+      "toNode": "n_src_ipc_send",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ipcendpoint_ring_ptr_src_ipc_send_cap",
+      "fromNode": "n_src_ipc_ipcendpoint_ring_ptr",
+      "toNode": "n_src_ipc_send_cap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ipcendpoint_ring_ptr_src_ipc_recv_cap",
+      "fromNode": "n_src_ipc_ipcendpoint_ring_ptr",
+      "toNode": "n_src_ipc_recv_cap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ipcendpoint_ring_ptr_src_ipc_recv",
+      "fromNode": "n_src_ipc_ipcendpoint_ring_ptr",
+      "toNode": "n_src_ipc_recv",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_create_endpoint",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_create_endpoint",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_endpoint_phys",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_endpoint_phys",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_send",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_send",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_send_cap",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_send_cap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_recv_cap",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_recv_cap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_ipc_recv",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_ipc_recv",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_ipc_ep_table_src_serial_spinlock_t_new",
+      "fromNode": "n_src_ipc_ep_table",
+      "toNode": "n_src_serial_spinlock_t_new",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_pmm_alloc_frame",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_pmm_alloc_frame",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_vmm_virtaddr",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_vmm_virtaddr",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_vmm_map_page",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_vmm_map_page",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_main_kmain",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_main_kmain",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_main_core_smoke",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_main_core_smoke",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_create_endpoint_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_ipc_create_endpoint",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_src_task_wake_task",
+      "fromNode": "n_src_ipc_send",
+      "toNode": "n_src_task_wake_task",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_src_task_current_task_id",
+      "fromNode": "n_src_ipc_send",
+      "toNode": "n_src_task_current_task_id",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_src_task_block_and_yield",
+      "fromNode": "n_src_ipc_send",
+      "toNode": "n_src_task_block_and_yield",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_src_main_kmain",
+      "fromNode": "n_src_ipc_send",
+      "toNode": "n_src_main_kmain",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_ipc_send",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_cap_src_task_wake_task",
+      "fromNode": "n_src_ipc_send_cap",
+      "toNode": "n_src_task_wake_task",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_cap_src_task_current_task_id",
+      "fromNode": "n_src_ipc_send_cap",
+      "toNode": "n_src_task_current_task_id",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_cap_src_task_block_and_yield",
+      "fromNode": "n_src_ipc_send_cap",
+      "toNode": "n_src_task_block_and_yield",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_send_cap_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_ipc_send_cap",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_cap_src_task_wake_task",
+      "fromNode": "n_src_ipc_recv_cap",
+      "toNode": "n_src_task_wake_task",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_cap_src_task_current_task_id",
+      "fromNode": "n_src_ipc_recv_cap",
+      "toNode": "n_src_task_current_task_id",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_cap_src_task_block_and_yield",
+      "fromNode": "n_src_ipc_recv_cap",
+      "toNode": "n_src_task_block_and_yield",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_cap_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_ipc_recv_cap",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_src_task_wake_task",
+      "fromNode": "n_src_ipc_recv",
+      "toNode": "n_src_task_wake_task",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_src_task_current_task_id",
+      "fromNode": "n_src_ipc_recv",
+      "toNode": "n_src_task_current_task_id",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_src_task_block_and_yield",
+      "fromNode": "n_src_ipc_recv",
+      "toNode": "n_src_task_block_and_yield",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_ipc_recv_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_ipc_recv",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_alloc_cap_id",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_alloc_cap_id",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_capkind",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_capkind",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_caprights",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_caprights",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_kernelobject",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_kernelobject",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_kernelobjectref",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_kernelobjectref",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_koslot",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_koslot",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_kotable",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_kotable",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_globalkotable",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_globalkotable",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_ko_table",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_ko_table",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_create_object",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_create_object",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_destroy_object",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_destroy_object",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_get_object",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_get_object",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_caphandle",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_caphandle",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_capability",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_capability",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_capslot",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_capslot",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_capabilitytable",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_capabilitytable",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_caperror",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_caperror",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_create_root_cap",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_create_root_cap",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_cap_grant",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_cap_grant",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_cap_cascade_revoke",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_cap_cascade_revoke",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_cascade_force",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_cascade_force",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_cap_inherit",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_cap_inherit",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_rs_src_cap_cap_revoke",
+      "fromNode": "n_src_cap_rs",
+      "toNode": "n_src_cap_cap_revoke",
+      "label": "contains [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_alloc_cap_id_src_cap_create_root_cap",
+      "fromNode": "n_src_cap_alloc_cap_id",
+      "toNode": "n_src_cap_create_root_cap",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_alloc_cap_id_src_cap_cap_grant",
+      "fromNode": "n_src_cap_alloc_cap_id",
+      "toNode": "n_src_cap_cap_grant",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_alloc_cap_id_src_cap_cap_inherit",
+      "fromNode": "n_src_cap_alloc_cap_id",
+      "toNode": "n_src_cap_cap_inherit",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_src_cap_caprights_has",
+      "fromNode": "n_src_cap_caprights",
+      "toNode": "n_src_cap_caprights_has",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_src_cap_caprights_intersect",
+      "fromNode": "n_src_cap_caprights",
+      "toNode": "n_src_cap_caprights_intersect",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_src_syscall_syscall_dispatch",
+      "fromNode": "n_src_cap_caprights",
+      "toNode": "n_src_syscall_syscall_dispatch",
+      "label": "calls [INFERRED]"
+    },
+    {
+      "id": "e_src_cap_caprights_has_src_cap_capabilitytable_has_kind_with_rights",
+      "fromNode": "n_src_cap_caprights_has",
+      "toNode": "n_src_cap_capabilitytable_has_kind_with_rights",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_has_src_cap_cap_grant",
+      "fromNode": "n_src_cap_caprights_has",
+      "toNode": "n_src_cap_cap_grant",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_has_src_cap_cap_cascade_revoke",
+      "fromNode": "n_src_cap_caprights_has",
+      "toNode": "n_src_cap_cap_cascade_revoke",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_has_src_cap_cap_revoke",
+      "fromNode": "n_src_cap_caprights_has",
+      "toNode": "n_src_cap_cap_revoke",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_caprights_intersect_src_cap_cap_grant",
+      "fromNode": "n_src_cap_caprights_intersect",
+      "toNode": "n_src_cap_cap_grant",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kernelobjectref_src_cap_kernelobjectref_pack",
+      "fromNode": "n_src_cap_kernelobjectref",
+      "toNode": "n_src_cap_kernelobjectref_pack",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kernelobjectref_src_cap_kernelobjectref_index",
+      "fromNode": "n_src_cap_kernelobjectref",
+      "toNode": "n_src_cap_kernelobjectref_index",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kernelobjectref_src_cap_kernelobjectref_generation",
+      "fromNode": "n_src_cap_kernelobjectref",
+      "toNode": "n_src_cap_kernelobjectref_generation",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_src_cap_kotable_create",
+      "fromNode": "n_src_cap_kotable",
+      "toNode": "n_src_cap_kotable_create",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_src_cap_kotable_get",
+      "fromNode": "n_src_cap_kotable",
+      "toNode": "n_src_cap_kotable_get",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_src_cap_kotable_destroy",
+      "fromNode": "n_src_cap_kotable",
+      "toNode": "n_src_cap_kotable_destroy",
+      "label": "method [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_create_src_cap_caphandle_pack",
+      "fromNode": "n_src_cap_kotable_create",
+      "toNode": "n_src_cap_caphandle_pack",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_create_src_cap_create_object",
+      "fromNode": "n_src_cap_kotable_create",
+      "toNode": "n_src_cap_create_object",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_get_src_cap_capabilitytable_get",
+      "fromNode": "n_src_cap_kotable_get",
+      "toNode": "n_src_cap_capabilitytable_get",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_get_src_cap_caphandle_index",
+      "fromNode": "n_src_cap_kotable_get",
+      "toNode": "n_src_cap_caphandle_index",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_get_src_cap_caphandle_generation",
+      "fromNode": "n_src_cap_kotable_get",
+      "toNode": "n_src_cap_caphandle_generation",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_destroy_src_cap_capabilitytable_get_mut",
+      "fromNode": "n_src_cap_kotable_destroy",
+      "toNode": "n_src_cap_capabilitytable_get_mut",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_destroy_src_cap_caphandle_index",
+      "fromNode": "n_src_cap_kotable_destroy",
+      "toNode": "n_src_cap_caphandle_index",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_destroy_src_cap_caphandle_generation",
+      "fromNode": "n_src_cap_kotable_destroy",
+      "toNode": "n_src_cap_caphandle_generation",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_kotable_destroy_src_cap_destroy_object",
+      "fromNode": "n_src_cap_kotable_destroy",
+      "toNode": "n_src_cap_destroy_object",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_ko_table_src_cap_capabilitytable_get",
+      "fromNode": "n_src_cap_ko_table",
+      "toNode": "n_src_cap_capabilitytable_get",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_ko_table_src_cap_capabilitytable_new",
+      "fromNode": "n_src_cap_ko_table",
+      "toNode": "n_src_cap_capabilitytable_new",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_ko_table_src_cap_create_object",
+      "fromNode": "n_src_cap_ko_table",
+      "toNode": "n_src_cap_create_object",
+      "label": "calls [EXTRACTED]"
+    },
+    {
+      "id": "e_src_cap_ko_table_src_cap_destroy_object",
+      "fromNode": "n_src_cap_ko_table",
+      "toNode": "n_src_cap_destroy_object",
+      "label": "calls [EXTRACTED]"
+    }
+  ]
+}

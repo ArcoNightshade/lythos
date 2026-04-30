@@ -1,0 +1,18 @@
+---
+source_file: "src/ipc.rs"
+type: "code"
+community: "Kernel Initialization"
+location: "line 121"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Kernel_Initialization
+---
+
+# ipc::create_endpoint
+
+## Connections
+- [[alloc_frame]] - `calls` [EXTRACTED]
+- [[kmain (kernel entry point)]] - `calls` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Kernel_Initialization
