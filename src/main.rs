@@ -10,6 +10,9 @@ use core::panic::PanicInfo;
 
 pub mod apic;
 pub mod cap;
+pub mod ioapic;
+pub mod pci;
+pub mod virtio_blk;
 pub mod elf;
 mod exceptions;
 mod gdt;
@@ -139,6 +142,23 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // ── APIC + preemptive timer ───────────────────────────────────────────
     apic::init();
     kprintln!("[apic] timer active — preemptive scheduling enabled");
+
+    ioapic::init();
+    kprintln!(
+        "[ioapic] initialized — {} GSIs, all masked",
+        ioapic::entry_count(),
+    );
+
+    if virtio_blk::init() {
+        let sects = virtio_blk::capacity_sectors();
+        kprintln!(
+            "[virtio-blk] device ready — {} sectors ({} MiB)",
+            sects,
+            sects / 2048,
+        );
+    } else {
+        kprintln!("[virtio-blk] no device found (pass -device virtio-blk-pci to QEMU)");
+    }
 
     // Smoke-test: sleep ~50 ms by polling the tick counter.
     let t0 = apic::ticks();
@@ -707,9 +727,11 @@ fn core_smoke() {
     // All cases are called directly via `syscall_dispatch` (no ring-3 needed).
     // A panic here means the kernel did not reject a bad input gracefully.
     {
-        // Unknown syscall numbers → ENOSYS (19 = SYS_TASK_KILL is highest implemented)
+        // Unknown syscall numbers → ENOSYS (21 = SYS_BLK_WRITE is highest implemented;
+        // 20/21 return ENOSYS when no VirtIO block device is present, which is the
+        // case during kernel smoke tests run without a disk image).
         let mut f: syscall::SyscallFrame;
-        for nr in [20u64, 100, 255, u64::MAX] {
+        for nr in [22u64, 100, 255, u64::MAX] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(

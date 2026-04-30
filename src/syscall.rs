@@ -44,6 +44,10 @@
 /// | 15 | SYS_TIME         |
 /// | 16 | SYS_TASK_STATUS  |
 /// | 17 | SYS_TASK_LIST   |
+/// | 18 | SYS_MEM_STAT    |
+/// | 19 | SYS_TASK_KILL   |
+/// | 20 | SYS_BLK_READ    |
+/// | 21 | SYS_BLK_WRITE   |
 
 use core::arch::global_asm;
 
@@ -98,6 +102,14 @@ pub const SYS_MEM_STAT:     u64 = 18;
 /// a1 = TaskId.
 /// Returns 0 on success, EINVAL if not found / already dead / protected task.
 pub const SYS_TASK_KILL:    u64 = 19;
+/// Read one 512-byte sector from the VirtIO block device into a user buffer.
+/// a1 = sector (u64), a2 = buf_ptr (user VA, *mut u8, must be 512 bytes).
+/// Returns 0 on success; ENOSYS if no block device; EINVAL on bad args or I/O error.
+pub const SYS_BLK_READ:     u64 = 20;
+/// Write one 512-byte sector from a user buffer to the VirtIO block device.
+/// a1 = sector (u64), a2 = buf_ptr (user VA, *const u8, must be 512 bytes).
+/// Returns 0 on success; ENOSYS if no block device; EINVAL on bad args or I/O error.
+pub const SYS_BLK_WRITE:    u64 = 21;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -783,6 +795,48 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             // a1 = TaskId to kill.
             let target = frame.a1;
             if crate::task::kill_task(target) { 0 } else { EINVAL }
+        }
+        SYS_BLK_READ => {
+            // a1 = sector (u64), a2 = buf_ptr (user VA, *mut u8, 512 bytes)
+            if !crate::virtio_blk::is_present() { return ENOSYS; }
+            let sector  = frame.a1;
+            let buf_ptr = frame.a2;
+            if !valid_user_range(buf_ptr, crate::virtio_blk::SECTOR_SIZE as u64) {
+                return EINVAL;
+            }
+            let mut kbuf = [0u8; crate::virtio_blk::SECTOR_SIZE];
+            if !crate::virtio_blk::read_sector(sector, &mut kbuf) { return EINVAL; }
+            unsafe {
+                with_user_access(|| {
+                    core::ptr::copy_nonoverlapping(
+                        kbuf.as_ptr(),
+                        buf_ptr as *mut u8,
+                        crate::virtio_blk::SECTOR_SIZE,
+                    );
+                });
+            }
+            0
+        }
+        SYS_BLK_WRITE => {
+            // a1 = sector (u64), a2 = buf_ptr (user VA, *const u8, 512 bytes)
+            if !crate::virtio_blk::is_present() { return ENOSYS; }
+            let sector  = frame.a1;
+            let buf_ptr = frame.a2;
+            if !valid_user_range(buf_ptr, crate::virtio_blk::SECTOR_SIZE as u64) {
+                return EINVAL;
+            }
+            let mut kbuf = [0u8; crate::virtio_blk::SECTOR_SIZE];
+            unsafe {
+                with_user_access(|| {
+                    core::ptr::copy_nonoverlapping(
+                        buf_ptr as *const u8,
+                        kbuf.as_mut_ptr(),
+                        crate::virtio_blk::SECTOR_SIZE,
+                    );
+                });
+            }
+            if !crate::virtio_blk::write_sector(sector, &kbuf) { return EINVAL; }
+            0
         }
         _ => ENOSYS,
     }

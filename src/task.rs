@@ -93,7 +93,7 @@ pub struct TaskContext {
     pub rsp: u64,
 }
 
-pub const KERNEL_STACK_SIZE: usize = 16 * 1024; // 16 KiB per task
+pub const KERNEL_STACK_SIZE: usize = 64 * 1024; // 64 KiB per task
 
 /// Magic value written at the bottom of every kernel stack (the first usable
 /// word above the guard page).  Checked at every yield / exit.  A corrupted

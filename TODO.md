@@ -3,15 +3,15 @@
 ## Shell (lysh)
 
 - [x] Command history (up-arrow scrolls previous commands)
-- [ ] Tab completion (builtins only for now)
+- [x] Tab completion (builtins only for now)
 - [x] `uptime` — print milliseconds since boot via SYS_TIME
 - [x] `free`   — print free physical frames via a new SYS_MEM_STAT syscall
 - [x] `kill <tid>` — terminate a task by ID (new SYS_TASK_KILL syscall)
 
 ## Filesystem
 
-- [ ] VirtIO block device driver (virtio-blk, MMIO or PCI)
-- [ ] Raw block read/write syscalls (SYS_BLK_READ / SYS_BLK_WRITE)
+- [x] VirtIO block device driver (virtio-blk, MMIO or PCI)
+- [x] Raw block read/write syscalls (SYS_BLK_READ / SYS_BLK_WRITE)
 - [ ] Simple flat filesystem (custom or FAT32)
 - [ ] VFS layer: SYS_OPEN, SYS_READ, SYS_WRITE, SYS_CLOSE, SYS_STAT
 - [ ] lysh `exec <path>` — load and run an ELF off the filesystem
@@ -27,7 +27,7 @@
 
 ## Kernel reliability
 
-- [ ] IOAPIC driver (replace 8259 PIC — needed for VirtIO PCI interrupts)
+- [x] IOAPIC driver (replace 8259 PIC — needed for VirtIO PCI interrupts)
 - [ ] Multi-processor support (AP startup, per-CPU scheduler)
 - [ ] Larger default kernel stack (current 16 KiB can be tight)
 - [ ] Kernel ASLR

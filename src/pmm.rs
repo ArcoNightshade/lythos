@@ -322,3 +322,47 @@ pub fn free_frame(addr: PhysAddr) {
 pub fn free_frame_count() -> usize {
     FREE_FRAMES.load(Ordering::Relaxed)
 }
+
+/// Allocate `n` physically-contiguous 4 KiB frames.
+///
+/// Returns the physical address of the first frame, or `None` if no
+/// contiguous run of `n` free frames exists.  The caller is responsible
+/// for zeroing the allocation before use.
+///
+/// O(MAX_FRAMES × n) scan — acceptable for small `n` at boot time.
+pub fn alloc_frames_contiguous(n: usize) -> Option<PhysAddr> {
+    if n == 0 { return None; }
+    unsafe {
+        let mut start = 0usize;
+        while start + n <= MAX_FRAMES {
+            // Check whether n consecutive frames starting at `start` are free.
+            let mut all_free = true;
+            for i in 0..n {
+                if is_used(start + i) {
+                    // Skip past the used frame — no run can start before it.
+                    start = start + i + 1;
+                    all_free = false;
+                    break;
+                }
+            }
+            if all_free {
+                for i in 0..n {
+                    set_used(start + i);
+                }
+                FREE_FRAMES.fetch_sub(n, Ordering::Relaxed);
+                return Some(PhysAddr(start as u64 * FRAME_SIZE));
+            }
+        }
+    }
+    None
+}
+
+/// Free `n` physically-contiguous frames starting at `addr`.
+///
+/// `addr` must be page-aligned and must have been allocated by
+/// `alloc_frames_contiguous(n)` or `n` consecutive `alloc_frame` calls.
+pub fn free_frames_contiguous(addr: PhysAddr, n: usize) {
+    for i in 0..n {
+        free_frame(PhysAddr(addr.0 + i as u64 * FRAME_SIZE));
+    }
+}

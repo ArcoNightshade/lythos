@@ -207,3 +207,13 @@ lythd's first action should be `SYS_IPC_RECV` on handle 2 to consume this messag
 - **U/S bit must be set at every page table level for user-mode accesses.** `vmm::walk_or_create` propagates `entry.0 |= 1 << 2` on all intermediate entries when `flags` includes the USER bit.
 - **Do not call `map_page` on addresses in the 0→1 GiB identity range.** Those are huge pages; `walk_or_create` will panic on the PS=1 entry.
 - **`NEXT_STACK_SLOT` starts at 0 and increments per `exec` call.** Never call `alloc_user_stack` from concurrent contexts (single-threaded kernel makes this safe currently).
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
