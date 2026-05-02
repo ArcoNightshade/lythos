@@ -3,15 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lythos: Capability-Aware Microkernel</title>
-    <meta name="description" content="Lythos is an experimental x86-64 microkernel written in Rust. Every resource governed by an unforgeable capability handle. Minimal, verifiable, built for security-first systems." />
+    <title>Lythos Microkernel</title>
+    <meta
+      name="description"
+      content="Lythos is an experimental x86-64 microkernel written in Rust. Every resource governed by an unforgeable capability handle. Minimal, verifiable, built for security-first systems."
+    />
     <meta property="og:title" content="Lythos: Capability-Aware Microkernel" />
-    <meta property="og:description" content="An experimental x86-64 microkernel in Rust. Every resource governed by an unforgeable capability. Minimal by design, verifiable by construction." />
+    <meta
+      property="og:description"
+      content="An experimental x86-64 microkernel in Rust. Every resource governed by an unforgeable capability. Minimal by design, verifiable by construction."
+    />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://lythos.pureshade.dev/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Lythos: Capability-Aware Microkernel" />
-    <meta name="twitter:description" content="An experimental x86-64 microkernel in Rust. Every resource governed by an unforgeable capability." />
+    <meta
+      name="twitter:description"
+      content="An experimental x86-64 microkernel in Rust. Every resource governed by an unforgeable capability."
+    />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -754,17 +764,81 @@
       .hamburger {
         display: none;
         flex-direction: column;
-        gap: 4px;
+        gap: 5px;
         background: none;
         border: none;
         cursor: pointer;
         padding: 6px;
+        z-index: 300;
       }
       .hamburger span {
         display: block;
-        width: 18px;
-        height: 1px;
+        width: 20px;
+        height: 2px;
         background: var(--text-muted);
+        border-radius: 2px;
+        transition:
+          transform 0.2s,
+          opacity 0.2s;
+        transform-origin: center;
+      }
+      .hamburger.open span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+      }
+      .hamburger.open span:nth-child(2) {
+        opacity: 0;
+        transform: scaleX(0);
+      }
+      .hamburger.open span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+      }
+
+      /* Mobile nav drawer */
+      .mobile-nav {
+        display: none;
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        z-index: 199;
+        padding: 1rem 1.5rem 1.5rem;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      .mobile-nav.open {
+        display: flex;
+      }
+      .mobile-nav > a {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        font-weight: 400;
+        padding: 0.6rem 0.5rem;
+        border-radius: 6px;
+        transition:
+          color 0.15s,
+          background 0.15s;
+        display: block;
+        border-bottom: 1px solid var(--border);
+      }
+      .mobile-nav > a:last-of-type {
+        border-bottom: none;
+      }
+      .mobile-nav > a:hover,
+      .mobile-nav > a.active {
+        color: var(--text);
+      }
+      .mobile-nav-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border);
+      }
+      body.light .mobile-nav {
+        background: rgba(249, 249, 249, 0.97);
       }
 
       /* ── Mobile ── */
@@ -774,16 +848,20 @@
         }
       }
 
-      @media (max-width: 768px) {
+      @media (max-width: 1024px) {
         nav {
           display: none;
         }
         .hamburger {
           display: flex;
         }
-        .nav-right .btn-ghost {
+        .nav-right .btn-ghost,
+        .nav-right .btn-lime {
           display: none;
         }
+      }
+
+      @media (max-width: 768px) {
         .docs-layout {
           flex-direction: column;
         }
@@ -846,37 +924,9 @@
         background: #fff;
       }
 
-      /* ── Theme toggle button ── */
-      .theme-toggle {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        border: 1px solid var(--border-h);
-        background: transparent;
-        color: var(--text-muted);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: color 0.15s, border-color 0.15s, background 0.15s;
-        flex-shrink: 0;
+      body.light .btn-lime {
+        color: #fff;
       }
-      .theme-toggle:hover {
-        color: var(--text);
-        border-color: rgba(255, 255, 255, 0.25);
-      }
-      body.light .theme-toggle:hover {
-        border-color: rgba(0, 0, 0, 0.25);
-      }
-      .theme-toggle svg {
-        width: 14px;
-        height: 14px;
-        pointer-events: none;
-      }
-      .theme-toggle .icon-moon { display: block; }
-      .theme-toggle .icon-sun  { display: none; }
-      body.light .theme-toggle .icon-moon { display: none; }
-      body.light .theme-toggle .icon-sun  { display: block; }
 
       /* ── FAQ ── */
       .faq-list {
@@ -892,7 +942,9 @@
         border-bottom: 1px solid var(--border);
         background: var(--bg-card);
       }
-      .faq-item:last-child { border-bottom: none; }
+      .faq-item:last-child {
+        border-bottom: none;
+      }
       .faq-q {
         width: 100%;
         text-align: left;
@@ -910,8 +962,12 @@
         gap: 1rem;
         transition: background 0.15s;
       }
-      .faq-q:hover { background: rgba(255,255,255,0.03); }
-      body.light .faq-q:hover { background: rgba(0,0,0,0.03); }
+      .faq-q:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+      body.light .faq-q:hover {
+        background: rgba(0, 0, 0, 0.03);
+      }
       .faq-q svg {
         flex-shrink: 0;
         width: 14px;
@@ -919,11 +975,15 @@
         color: var(--text-dim);
         transition: transform 0.2s;
       }
-      .faq-item.open .faq-q svg { transform: rotate(45deg); }
+      .faq-item.open .faq-q svg {
+        transform: rotate(45deg);
+      }
       .faq-a {
         max-height: 0;
         overflow: hidden;
-        transition: max-height 0.3s ease, padding 0.2s;
+        transition:
+          max-height 0.3s ease,
+          padding 0.2s;
         padding: 0 1.5rem;
         font-size: 0.875rem;
         color: var(--text-muted);
@@ -968,13 +1028,15 @@
       </nav>
 
       <div class="nav-right">
-        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
-          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-          </svg>
-          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-          </svg>
+        <button
+          class="hamburger"
+          id="hamburger"
+          aria-label="Open menu"
+          aria-expanded="false"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
         </button>
         <a
           href="https://github.com/ArcoNightshade/lythos"
@@ -992,6 +1054,72 @@
         >
       </div>
     </header>
+
+    <!-- Mobile nav drawer -->
+    <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+      <a
+        onclick="
+          navigate('#home');
+          closeMobileNav();
+        "
+        class="active"
+        >Home</a
+      >
+      <a
+        onclick="
+          navigate('#about');
+          closeMobileNav();
+        "
+        >About</a
+      >
+      <a
+        onclick="
+          navigate('#docs');
+          closeMobileNav();
+        "
+        >Docs</a
+      >
+      <a
+        onclick="
+          navigate('#faq');
+          closeMobileNav();
+        "
+        >FAQ</a
+      >
+      <a
+        onclick="
+          navigate('#downloads');
+          closeMobileNav();
+        "
+        >Downloads</a
+      >
+      <a
+        onclick="
+          navigate('#contact');
+          closeMobileNav();
+        "
+        >Contact</a
+      >
+      <div class="mobile-nav-actions">
+        <a
+          href="https://github.com/ArcoNightshade/lythos"
+          target="_blank"
+          rel="noopener"
+          class="btn btn-ghost"
+          style="font-size: 0.8rem"
+          >GitHub</a
+        >
+        <a
+          onclick="
+            navigate('#docs');
+            closeMobileNav();
+          "
+          class="btn btn-lime"
+          style="padding: 0.45rem 1.1rem; font-size: 0.8rem"
+          >View docs</a
+        >
+      </div>
+    </div>
 
     <!-- ══════════════ HOME ══════════════ -->
     <div id="home" class="page active">
@@ -2360,70 +2488,181 @@ Limits:
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               Why a microkernel?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              Monolithic kernels run drivers and filesystems in ring 0. A bug in a driver is a kernel bug: it can corrupt memory, escalate privileges, or crash the whole system. Lythos moves these components to userspace, where capability handles gate every resource access. A misbehaving driver can only damage what it was explicitly granted, and can be restarted without a reboot.
+              Monolithic kernels run drivers and filesystems in ring 0. A bug in
+              a driver is a kernel bug: it can corrupt memory, escalate
+              privileges, or crash the whole system. Lythos moves these
+              components to userspace, where capability handles gate every
+              resource access. A misbehaving driver can only damage what it was
+              explicitly granted, and can be restarted without a reboot.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
-              What is <code style="font-family:monospace;font-size:0.88em">lythd</code>?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              What is lythd?
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              <code style="font-family:monospace;font-size:0.88em">lythd</code> is the first userspace process, analogous to PID 1 on Unix. The kernel starts it at boot with three capabilities (Memory, Rollback, and a boot IPC endpoint). It reads a <code style="font-family:monospace;font-size:0.88em">BootInfo</code> message, then spawns <code style="font-family:monospace;font-size:0.88em">lythdist</code> (the service manager) and enters a service loop. If lythd exits, the kernel panics; there is no recovery from a dead init.
+              <code style="font-family: monospace; font-size: 0.88em"
+                >lythd</code
+              >
+              is the first userspace process, analogous to PID 1 on Unix. The
+              kernel starts it at boot with three capabilities (Memory,
+              Rollback, and a boot IPC endpoint). It reads a
+              <code style="font-family: monospace; font-size: 0.88em"
+                >BootInfo</code
+              >
+              message, then spawns
+              <code style="font-family: monospace; font-size: 0.88em"
+                >lythdist</code
+              >
+              (the service manager) and enters a service loop. If lythd exits,
+              the kernel panics; there is no recovery from a dead init.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               Is there Linux compatibility?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              No, and intentionally so. Lythos has its own minimal syscall ABI (11 syscalls at present). Linux compatibility is an optional OROS userspace concern (an OROS server could implement a Linux syscall translation layer), but it is not in the kernel and is not a current goal. The Lythos ABI is designed to be clean and correct, not compatible.
+              No, and intentionally so. Lythos has its own minimal syscall ABI
+              (11 syscalls at present). Linux compatibility is an optional OROS
+              userspace concern (an OROS server could implement a Linux syscall
+              translation layer), but it is not in the kernel and is not a
+              current goal. The Lythos ABI is designed to be clean and correct,
+              not compatible.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               What's the license?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              Lythos is developed by Pureshade Labs, LLC and is currently source-available for inspection and research. A formal open-source license will be announced alongside a stable release. Check the GitHub repository for the current license file.
+              Lythos is developed by Pureshade Labs, LLC and is currently
+              source-available for inspection and research. A formal open-source
+              license will be announced alongside a stable release. Check the
+              GitHub repository for the current license file.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               How can I contribute?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              Open an issue or pull request on the GitHub repository. Areas most welcoming of contributions: documentation, OROS userspace tooling, and test coverage. For kernel changes, open an issue first to discuss the design; the kernel ABI is intentionally stable and changes require careful review.
+              Open an issue or pull request on the GitHub repository. Areas most
+              welcoming of contributions: documentation, OROS userspace tooling,
+              and test coverage. For kernel changes, open an issue first to
+              discuss the design; the kernel ABI is intentionally stable and
+              changes require careful review.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               What hardware does it run on?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              Lythos targets x86-64 (AMD64). It is tested under QEMU with a VirtIO block device, LAPIC, and IOAPIC. It should boot on real x86-64 hardware via any Multiboot1 or Multiboot2 compliant bootloader (e.g. GRUB), but real-hardware testing is ongoing. Multi-processor (SMP) support is tracked in TODO.md and not yet implemented.
+              Lythos targets x86-64 (AMD64). It is tested under QEMU with a
+              VirtIO block device, LAPIC, and IOAPIC. It should boot on real
+              x86-64 hardware via any Multiboot1 or Multiboot2 compliant
+              bootloader (e.g. GRUB), but real-hardware testing is ongoing.
+              Multi-processor (SMP) support is tracked in TODO.md and not yet
+              implemented.
             </div>
           </div>
 
           <div class="faq-item">
             <button class="faq-q" aria-expanded="false">
               What does "Lythos" mean?
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <div class="faq-a">
-              Lythos is also the name of the broader protocol suite that the kernel anchors. The word is coined, a blend chosen for its feel rather than a direct translation. Internally it evokes <em>lithos</em> (stone, foundation) and a sense of deliberate, minimal construction. The kernel was previously codenamed CASK during early development.
+              Lythos is also the name of the broader protocol suite that the
+              kernel anchors. The word is coined, a blend chosen for its feel
+              rather than a direct translation. Internally it evokes
+              <em>lithos</em> (stone, foundation) and a sense of deliberate,
+              minimal construction. The kernel was previously codenamed CASK
+              during early development.
             </div>
           </div>
         </div>
@@ -2520,7 +2759,7 @@ Limits:
     <script>
       /* ── Navigation ── */
       const allPages = document.querySelectorAll(".page");
-      const navAnchors = document.querySelectorAll("nav a");
+      const navAnchors = document.querySelectorAll("nav a, .mobile-nav > a");
 
       function navigate(hash) {
         const id = hash.replace("#", "");
@@ -2532,7 +2771,10 @@ Limits:
         target.classList.add("active");
 
         navAnchors.forEach((a) => {
-          if (a.getAttribute("onclick") === `navigate('${hash}')`)
+          if (
+            a.getAttribute("onclick") &&
+            a.getAttribute("onclick").includes(`navigate('${hash}')`)
+          )
             a.classList.add("active");
         });
 
@@ -2547,19 +2789,46 @@ Limits:
           e.preventDefault();
           const targetId = link.getAttribute("href").replace("#", "");
           const target = document.getElementById(targetId);
-          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+          if (target)
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
         });
       });
 
-      /* ── Theme toggle ── */
-      const themeBtn = document.getElementById("theme-toggle");
-      const savedTheme = localStorage.getItem("lythos-theme");
-      if (savedTheme === "light") document.body.classList.add("light");
+      /* ── Theme: auto-detect system preference ── */
+      const mq = window.matchMedia("(prefers-color-scheme: light)");
+      if (mq.matches) document.body.classList.add("light");
+      mq.addEventListener("change", (e) => {
+        document.body.classList.toggle("light", e.matches);
+      });
 
-      themeBtn.addEventListener("click", () => {
-        document.body.classList.toggle("light");
-        const isLight = document.body.classList.contains("light");
-        localStorage.setItem("lythos-theme", isLight ? "light" : "dark");
+      /* ── Hamburger menu ── */
+      const hamburger = document.getElementById("hamburger");
+      const mobileNav = document.getElementById("mobile-nav");
+
+      function closeMobileNav() {
+        hamburger.classList.remove("open");
+        mobileNav.classList.remove("open");
+        hamburger.setAttribute("aria-expanded", "false");
+        mobileNav.setAttribute("aria-hidden", "true");
+      }
+      window.closeMobileNav = closeMobileNav;
+
+      hamburger.addEventListener("click", () => {
+        const isOpen = mobileNav.classList.contains("open");
+        if (isOpen) {
+          closeMobileNav();
+        } else {
+          hamburger.classList.add("open");
+          mobileNav.classList.add("open");
+          hamburger.setAttribute("aria-expanded", "true");
+          mobileNav.setAttribute("aria-hidden", "false");
+        }
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!hamburger.contains(e.target) && !mobileNav.contains(e.target)) {
+          closeMobileNav();
+        }
       });
 
       /* ── FAQ accordion ── */
