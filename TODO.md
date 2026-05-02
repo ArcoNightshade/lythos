@@ -40,7 +40,7 @@
 - [ ] Reclaim lythd module frames — PMM reserves 512 KiB at `0x400000` forever; free after the ELF is copied to heap
 - [ ] VirtIO interrupt-driven completion — replace polled spin on `used_ring.idx`; IRQ line already read at init, just unused
 - [ ] IPC timeout / cancellation — tasks that block on empty/full ring wait forever; add a deadline or cancel token (`docs/ipc.md`)
-- [ ] ELF user-facing error reporting — `exec()` panics on malformed ELF; surface a proper error code instead
+- [x] ELF user-facing error reporting — `exec()` panics on malformed ELF; surface a proper error code instead
 
 ## lythd / userspace
 

@@ -106,6 +106,9 @@ pub enum ElfError {
     UnsupportedMachine,
     BadProgramHeader,
     SegmentOutOfBounds,
+    OutOfMemory,
+    StackExhausted,
+    ArgvTooLarge,
 }
 
 // ── Stack constants ────────────────────────────────────────────────────────────
@@ -189,7 +192,7 @@ fn load_segment_into(data: &[u8], phdr: &Elf64Phdr, user_pml4: PhysAddr) -> Resu
             p
         } else {
             let f = crate::pmm::alloc_frame()
-                .expect("elf::load_segment_into: out of physical frames");
+                .ok_or(ElfError::OutOfMemory)?;
             crate::vmm::map_page_in(user_pml4, VirtAddr(page_va), f, flags);
             // Zero entirely through the identity map.
             unsafe { core::ptr::write_bytes(f.as_u64() as *mut u8, 0, 0x1000); }
@@ -228,18 +231,16 @@ fn load_segment_into(data: &[u8], phdr: &Elf64Phdr, user_pml4: PhysAddr) -> Resu
 /// Returns `(stack_top_va, last_usable_page_phys)`.  The physical address is
 /// needed by `write_initial_stack_frame` to write the ABI frame through the
 /// identity map while the kernel PML4 is still active.
-fn alloc_user_stack_into(user_pml4: PhysAddr) -> (VirtAddr, PhysAddr) {
-    // Maximum exec calls before the user stack VA window is exhausted.
-    // Available VA: 0x7FFF_0000_0000 → 0x8000_0000_0000 = 0x1_0000_0000 bytes (4 GiB).
-    // Slot size: 2050 × 4096 = 0x80_2000 bytes (~8 MiB).  Limit: floor(4GiB/8MiB) = 511.
+fn alloc_user_stack_into(user_pml4: PhysAddr) -> Result<(VirtAddr, PhysAddr), ElfError> {
+    // Available VA: 0x7FFF_0000_0000 → 0x8000_0000_0000 = 4 GiB.
+    // Slot size: 2050 × 4096 ≈ 8 MiB.  Limit: floor(4GiB/8MiB) = 511.
     const MAX_STACK_SLOTS: u64 = 511;
-    let slot      = NEXT_STACK_SLOT.fetch_add(1, Ordering::Relaxed);
-    assert!(slot < MAX_STACK_SLOTS, "elf: user stack VA window exhausted (>511 exec calls)");
+    let slot = NEXT_STACK_SLOT.fetch_add(1, Ordering::Relaxed);
+    if slot >= MAX_STACK_SLOTS { return Err(ElfError::StackExhausted); }
     let slot_base = STACK_GUARD_VA + slot * STACK_SLOT_PAGES * 0x1000;
 
     // Guard page: kernel-only, NX.
-    let guard_frame = crate::pmm::alloc_frame()
-        .expect("elf::alloc_user_stack_into: out of frames for guard page");
+    let guard_frame = crate::pmm::alloc_frame().ok_or(ElfError::OutOfMemory)?;
     crate::vmm::map_page_in(
         user_pml4,
         VirtAddr(slot_base),
@@ -251,15 +252,14 @@ fn alloc_user_stack_into(user_pml4: PhysAddr) -> (VirtAddr, PhysAddr) {
     // Usable stack pages.
     let mut last_frame = PhysAddr(0);
     for i in 1..=(USER_STACK_PAGES as u64) {
-        let frame = crate::pmm::alloc_frame()
-            .expect("elf::alloc_user_stack_into: out of frames for stack");
+        let frame = crate::pmm::alloc_frame().ok_or(ElfError::OutOfMemory)?;
         crate::vmm::map_page_in(user_pml4, VirtAddr(slot_base + i * 0x1000), frame, PageFlags::USER_RW);
         unsafe { core::ptr::write_bytes(frame.as_u64() as *mut u8, 0, 0x1000); }
         if i == USER_STACK_PAGES as u64 { last_frame = frame; }
     }
 
     let stack_top = VirtAddr(slot_base + (USER_STACK_PAGES as u64 + 1) * 0x1000);
-    (stack_top, last_frame)
+    Ok((stack_top, last_frame))
 }
 
 /// Write the initial ABI stack frame below `stack_top` through `last_page_phys`.
@@ -275,13 +275,13 @@ fn write_initial_stack_frame(
     stack_top: VirtAddr,
     last_page_phys: PhysAddr,
     argv: &[&str],
-) -> VirtAddr {
+) -> Result<VirtAddr, ElfError> {
     let argc       = argv.len();
     let str_bytes: usize = argv.iter().map(|s| s.len() + 1).sum();
     // Fixed table: 1 (argc) + argc (ptrs) + 1 (argv NULL) + 1 (envp NULL) + 4 (auxv) = argc+7
     let header_bytes = 8 * (argc + 7);
     let total_bytes  = header_bytes + str_bytes;
-    assert!(total_bytes <= 4080, "write_initial_stack_frame: argv too large");
+    if total_bytes > 4080 { return Err(ElfError::ArgvTooLarge); }
 
     let rsp         = (stack_top.as_u64() - total_bytes as u64) & !0xF;
     let page_offset = (rsp & 0xFFF) as usize;
@@ -324,7 +324,7 @@ fn write_initial_stack_frame(
         off += 1;
     }
 
-    VirtAddr(rsp)
+    Ok(VirtAddr(rsp))
 }
 
 // ── exec trampoline ───────────────────────────────────────────────────────────
@@ -379,10 +379,10 @@ pub fn exec(elf_data: &[u8], caps: &[CapHandle], argv: &[&str]) -> Result<TaskId
     }
 
     // ── 4. User stack ─────────────────────────────────────────────────────
-    let (stack_top, last_page_phys) = alloc_user_stack_into(user_pml4);
+    let (stack_top, last_page_phys) = alloc_user_stack_into(user_pml4)?;
 
     // ── 5. Initial stack frame (through physical address) ─────────────────
-    let initial_sp = write_initial_stack_frame(stack_top, last_page_phys, argv);
+    let initial_sp = write_initial_stack_frame(stack_top, last_page_phys, argv)?;
 
     // ── 6. Spawn task with its own page table ─────────────────────────────
     let task_id = crate::task::spawn_userspace_task(
