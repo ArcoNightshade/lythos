@@ -111,6 +111,14 @@ FMASK clears IF on entry. Interrupts are disabled during the syscall handler.
 | 8 | SYS_IPC_CREATE | — | new cap handle |
 | 9 | SYS_ROLLBACK | — | never (requires Rollback cap) |
 | 10 | SYS_EXEC | a1=elf_ptr, a2=elf_len, a3=caps_ptr, a4=caps_len | new TaskId |
+| 22 | SYS_OPEN | a1=path_ptr, a2=path_len | fd (≥ 0) or error |
+| 23 | SYS_READ | a1=fd, a2=buf_ptr, a3=len | bytes read or error |
+| 24 | SYS_WRITE | a1=fd, a2=buf_ptr, a3=len | bytes written or error |
+| 25 | SYS_CLOSE | a1=fd | 0 or error |
+| 26 | SYS_STAT | a1=path_ptr, a2=path_len, a3=stat_ptr (48 B) | 0 or error |
+| 27 | SYS_READDIR | a1=path_ptr, a2=path_len, a3=buf_ptr, a4=buf_len | entry count or error |
+| 28 | SYS_CREATE | a1=path_ptr, a2=path_len | writable fd (≥ 0) or error |
+| 29 | SYS_UNLINK | a1=path_ptr, a2=path_len | 0 or error |
 
 Error codes (returned as large u64 values, equivalent to negative i64):
 

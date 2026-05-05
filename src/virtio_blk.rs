@@ -246,6 +246,13 @@ impl VirtioBlkDev {
     ///
     /// Returns `true` on success (device status byte == 0).
     fn submit(&mut self, sector: u64, write: bool) -> bool {
+        // Disable interrupts for the entire submit + poll cycle.
+        // The APIC timer ISR calls yield_task() which can disturb vCPU state
+        // while QEMU is mid-request; masking it during the brief I/O window
+        // keeps the path clean.  Interrupts are restored before we return.
+        let rflags: u64;
+        unsafe { core::arch::asm!("pushfq; pop {0}; cli", out(reg) rflags) };
+
         // ── Build request header at hdr_phys ─────────────────────────────────
         // VirtioBlkReq layout (16 bytes):
         //   [0..4)  type   (u32)
@@ -301,21 +308,45 @@ impl VirtioBlkDev {
         // ── Kick the device ───────────────────────────────────────────────────
         unsafe { outw(self.io_base + REG_QUEUE_NOTIFY, 0) };
 
-        // ── Poll used ring for completion ─────────────────────────────────────
-        let used_idx_ptr = used_idx_pa(self.vq_phys, self.q_size) as *const u16;
+        // ── Poll status byte for completion ───────────────────────────────────
+        //
+        // Polling `status_pa` (hdr_phys + 16) is simpler and more robust than
+        // polling the used-ring idx: it does not depend on queue-size layout
+        // calculations, and QEMU writes it as part of processing the request
+        // regardless of the ring accounting.  We poisoned it with 0xFF above;
+        // any other value means the device finished.
+        //
+        // We still bump last_used so the ring index stays in sync for future
+        // requests (QEMU increments used.idx even though we don't gate on it).
         let expected = self.last_used.wrapping_add(1);
+        let status_ptr = status_pa as *const u8;
+        let mut iters: u32 = 0;
         loop {
             atomic::fence(Ordering::Acquire);
-            let uid = unsafe { used_idx_ptr.read_volatile() };
-            if uid == expected { break; }
+            let s = unsafe { status_ptr.read_volatile() };
+            if s != 0xFF { break; }
+            iters += 1;
+            if iters == 50_000_000 {
+                let uid = unsafe {
+                    (used_idx_pa(self.vq_phys, self.q_size) as *const u16).read_volatile()
+                };
+                crate::kprintln!(
+                    "[virtio-blk] poll stall: status={:#x} used.idx={:#x} want={:#x} \
+                     status_pa={:#x} vq={:#x} q={}",
+                    s, uid, expected, status_pa, self.vq_phys, self.q_size,
+                );
+                unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags) };
+                return false;
+            }
             core::hint::spin_loop();
         }
         self.last_used = expected;
 
         // Clear ISR status to acknowledge the (potentially asserted) IRQ.
-        // Since all IOAPIC GSIs are masked, this interrupt never reaches the
-        // CPU — we clear it anyway to keep the device's IRQ line deasserted.
         let _ = unsafe { inb(self.io_base + REG_ISR_STATUS) };
+
+        // Restore interrupts.
+        unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags) };
 
         // ── Check device status byte ──────────────────────────────────────────
         let status = unsafe { (status_pa as *const u8).read_volatile() };
@@ -377,6 +408,12 @@ pub fn init() -> bool {
         return false;
     }
     let q_size = dev_q_size.min(QUEUE_SIZE_MAX as u16);
+
+    // Tell the device the queue size we will actually use.
+    // Without this write QEMU uses its own default for layout computation,
+    // which may differ from our capped q_size and cause the used-ring
+    // address we poll to mismatch the address the device writes to.
+    unsafe { outw(io + REG_QUEUE_NUM, q_size) };
 
     // Allocate QUEUE_PAGES physically-contiguous 4 KiB frames for the virtqueue.
     // The physical address is also the virtual address (identity map, phys < 1 GiB).

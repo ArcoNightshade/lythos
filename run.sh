@@ -14,18 +14,27 @@ else
     KERNEL_BIN="$LYTHOS/target/x86_64-lythos/debug/lythos"
 fi
 
-# ── build userspace ───────────────────────────────────────────────────────────
-# Build order: lythdist and lysh first (lythd embeds them via include_bytes!).
+OROS_TARGET="$OROS/target/x86_64-oros/release"
+ROOTFS_BIN="$LYTHOS/rootfs/bin"
+DISK_IMG="$LYTHOS/disk.img"
+
+# ── build OROS userspace ──────────────────────────────────────────────────────
+# Order matters: lythdist and lysh must be built before lythd (lythd embeds them
+# via include_bytes!).
 echo "[run.sh] building OROS userspace..."
 (cd "$OROS" && cargo build -p lythdist --release -q)
 (cd "$OROS" && cargo build -p lysh     --release -q)
 (cd "$OROS" && cargo build -p lythd    --release -q)
-LYTHD_BIN="$OROS/target/x86_64-oros/release/lythd"
 
-# ── build kernel ──────────────────────────────────────────────────────────────
-# The kernel no longer embeds lythd — it is passed as a Multiboot module below.
-# Kernel and OROS can now be rebuilt independently.
-echo "[run.sh] building lythos kernel..."
+# Copy binaries into rootfs/bin/ so mkrfs (run by build.rs) picks them up.
+mkdir -p "$ROOTFS_BIN"
+cp "$OROS_TARGET/lythd"    "$ROOTFS_BIN/lythd"
+cp "$OROS_TARGET/lythdist" "$ROOTFS_BIN/lythdist"
+cp "$OROS_TARGET/lysh"     "$ROOTFS_BIN/lysh"
+
+# ── build kernel + disk image ─────────────────────────────────────────────────
+# build.rs compiles mkrfs and runs it against rootfs/ to produce disk.img.
+echo "[run.sh] building lythos kernel + disk image..."
 (cd "$LYTHOS" && cargo build $CARGO_FLAGS -q)
 
 # ── run ───────────────────────────────────────────────────────────────────────
@@ -43,14 +52,15 @@ trap cleanup EXIT
 echo "[run.sh] launching QEMU..."
 qemu-system-x86_64 \
     -kernel "$KERNEL_BIN" \
-    -device loader,file="$LYTHD_BIN",addr=0x400000,force-raw=on \
+    -drive  file="$DISK_IMG",format=raw,if=none,id=hd0 \
+    -device virtio-blk-pci,drive=hd0 \
     -chardev socket,id=s0,path="$SOCK",server=on,wait=on \
     -serial chardev:s0 \
     -display none \
     "$@" &
 QPID=$!
 
-# Wait for QEMU to create the listening socket before connecting Python.
+# Wait for QEMU to create the listening socket before connecting.
 for i in $(seq 1 40); do
     [ -S "$SOCK" ] && break
     sleep 0.1
@@ -61,11 +71,10 @@ if [ ! -S "$SOCK" ]; then
     exit 1
 fi
 
-# Connect in raw mode so every keystroke goes straight through.
-# isig kept on so Ctrl+C still works as a kill signal.
 echo "[run.sh] connected — Ctrl+C to quit"
 
-# Write the bridge to a temp file so Python's stdin is not consumed by a heredoc.
+# Python bridge: raw terminal ↔ Unix socket.
+# Keeps ISIG so Ctrl+C still exits.
 BRIDGE="$(mktemp /tmp/lythos-bridge-XXXX)"
 cat > "$BRIDGE" <<'PYEOF'
 import socket, sys, os, select, termios
@@ -74,7 +83,6 @@ path = sys.argv[1]
 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 sock.connect(path)
 
-# Ensure stdin is raw (in case the shell's stty didn't propagate).
 old_attrs = termios.tcgetattr(0)
 new_attrs = termios.tcgetattr(0)
 new_attrs[0] &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK |

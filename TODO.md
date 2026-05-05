@@ -5,7 +5,7 @@
 - [x] Command history (up-arrow scrolls previous commands)
 - [x] Tab completion (builtins only for now)
 - [x] `uptime` — print milliseconds since boot via SYS_TIME
-- [x] `free`   — print free physical frames via a new SYS_MEM_STAT syscall
+- [x] `free` — print free physical frames via a new SYS_MEM_STAT syscall
 - [x] `kill <tid>` — terminate a task by ID (new SYS_TASK_KILL syscall)
 - [ ] Pipe support (`cmd1 | cmd2`) — needs SYS_IPC_CREATE plumbing in lysh
 - [ ] I/O redirection (`>`, `<`)
@@ -14,11 +14,11 @@
 
 - [x] VirtIO block device driver (virtio-blk, MMIO or PCI)
 - [x] Raw block read/write syscalls (SYS_BLK_READ / SYS_BLK_WRITE)
-- [ ] RFS kernel driver (`src/rfs.rs`) — on-disk format fully spec'd in `docs/rfs.md`; implement read/write/lookup
-- [ ] mkrfs integration — run `mkrfs` as part of `cargo build` to produce a QEMU disk image automatically
-- [ ] VFS layer: SYS_OPEN, SYS_READ, SYS_WRITE, SYS_CLOSE, SYS_STAT (SYS 22–27, already reserved in syscall table)
-- [ ] lysh `exec <path>` — load and run an ELF off the filesystem
-- [ ] lysh `ls`, `cat`, `cp`, `rm`
+- [x] RFS kernel driver (`src/rfs.rs`) — read/write/lookup/stat; extent allocator, dir entry management
+- [x] mkrfs integration — `build.rs` runs `mkrfs` to produce `disk.img` automatically
+- [x] VFS layer: SYS_OPEN, SYS_READ, SYS_WRITE, SYS_CLOSE, SYS_STAT, SYS_READDIR, SYS_CREATE, SYS_UNLINK (SYS 22–29)
+- [x] lysh `exec <path>` — load and run an ELF off the filesystem
+- [x] lysh `ls`, `cat`, `cp`, `rm`
 
 ## Networking
 

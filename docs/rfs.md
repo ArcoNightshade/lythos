@@ -230,21 +230,24 @@ mkrfs: done. 16384 total blocks, 16315 free, 42 inodes used.
 
 ---
 
-## Kernel RFS driver (planned — `src/rfs.rs`)
+## Kernel RFS driver (`src/rfs.rs`)
 
-Not yet implemented. The driver will:
+Fully implemented. Capabilities:
 
-1. Mount: read and validate the superblock.
-2. Block I/O: wrap `virtio_blk::read_sector` / `write_sector` into a
-   block-granular interface (8 sectors per block).
-3. Inode read: compute block and offset from inode number, call block read.
-4. Extent traversal: scan inline then overflow chain to resolve logical
-   block → physical block.
-5. File read: walk extents, copy data to caller buffer, fill sparse gaps
-   with zeroes.
-6. File write: allocate blocks, write data, update extents and inode.
-7. Directory scan: iterate variable-length entries in directory blocks.
-8. Path resolution: walk `/`-delimited components, resolve symlinks.
-9. VFS interface: `open`, `read`, `write`, `close`, `stat`, `readdir`.
+1. **Mount** — validates superblock magic, records `total_blocks`.
+2. **Block I/O** — `read_block` / `write_block` wrap `virtio_blk` (8 sectors per block).
+3. **Inode read/write** — `read_inode` / `write_inode` with `serialize_inode`.
+4. **Extent traversal** — inline (4) then overflow chain for logical → physical mapping.
+5. **File read** — sparse-hole aware; zero-fills unmapped logical blocks.
+6. **File write** — `append_to_file` allocates new blocks and extents as needed.
+7. **Block/inode allocator** — bitmap-based `alloc_block` / `free_block`,
+   scan-based `alloc_inode` / `free_inode`.
+8. **Directory scan** — variable-length entry iteration; deleted-entry (ino=0) skipping.
+9. **Directory write** — `add_dir_entry` reuses holes or appends/allocates blocks;
+   `remove_dir_entry` soft-deletes by zeroing the inode field.
+10. **Path resolution** — component walk with symlink following (max 8 hops).
+11. **VFS interface** — `open` (read-only fd), `create` (writable fd), `read`, `write`,
+    `close`, `stat_path`, `readdir_path`, `unlink`.
 
-See `TODO.md` for the full VFS syscall list (SYS_OPEN=22 through SYS_READDIR=27).
+Syscall numbers: SYS_OPEN=22, SYS_READ=23, SYS_WRITE=24, SYS_CLOSE=25,
+SYS_STAT=26, SYS_READDIR=27, SYS_CREATE=28, SYS_UNLINK=29.

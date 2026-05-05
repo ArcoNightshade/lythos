@@ -54,6 +54,8 @@
 /// | 25 | SYS_CLOSE       |
 /// | 26 | SYS_STAT        |
 /// | 27 | SYS_READDIR     |
+/// | 28 | SYS_CREATE      |
+/// | 29 | SYS_UNLINK      |
 
 use core::arch::global_asm;
 
@@ -120,7 +122,7 @@ pub const SYS_BLK_WRITE:    u64 = 21;
 pub const SYS_OPEN:         u64 = 22;
 /// Read from fd. a1=fd, a2=buf_ptr, a3=len. Returns bytes read or error.
 pub const SYS_READ:         u64 = 23;
-/// Write to fd (stub). Returns ENOPERM always for now.
+/// Write to an open writable fd. a1=fd, a2=buf_ptr, a3=len. Returns bytes written or error.
 pub const SYS_WRITE:        u64 = 24;
 /// Close fd. a1=fd. Returns 0 or error.
 pub const SYS_CLOSE:        u64 = 25;
@@ -128,6 +130,10 @@ pub const SYS_CLOSE:        u64 = 25;
 pub const SYS_STAT:         u64 = 26;
 /// Readdir. a1=path_ptr, a2=path_len, a3=buf_ptr, a4=buf_len. Returns entry count or error.
 pub const SYS_READDIR:      u64 = 27;
+/// Create a new empty regular file. a1=path_ptr, a2=path_len. Returns writable fd or error.
+pub const SYS_CREATE:       u64 = 28;
+/// Delete a file. a1=path_ptr, a2=path_len. Returns 0 or error.
+pub const SYS_UNLINK:       u64 = 29;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -887,7 +893,17 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             n as u64
         }
         SYS_WRITE => {
-            ENOPERM
+            // a1=fd, a2=buf_ptr, a3=len
+            let len = (frame.a3 as usize).min(1024 * 1024);
+            if len > 0 && !valid_user_range(frame.a2, frame.a3) { return EINVAL; }
+            let mut kbuf = alloc::vec![0u8; len];
+            if len > 0 {
+                unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                    frame.a2 as *const u8, kbuf.as_mut_ptr(), len,
+                )); }
+            }
+            let n = crate::rfs::write(frame.a1, &kbuf);
+            n as u64
         }
         SYS_CLOSE => {
             // a1=fd
@@ -956,6 +972,28 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
                 kbuf.as_ptr(), frame.a3 as *mut u8, count * ENTRY_SIZE,
             )); }
             count as u64
+        }
+        SYS_CREATE => {
+            // a1=path_ptr, a2=path_len
+            let path_len = frame.a2 as usize;
+            if path_len == 0 || path_len > 4096 { return EINVAL; }
+            if !valid_user_range(frame.a1, frame.a2) { return EINVAL; }
+            let mut kpath = alloc::vec![0u8; path_len];
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                frame.a1 as *const u8, kpath.as_mut_ptr(), path_len,
+            )); }
+            crate::rfs::create(&kpath) as u64
+        }
+        SYS_UNLINK => {
+            // a1=path_ptr, a2=path_len
+            let path_len = frame.a2 as usize;
+            if path_len == 0 || path_len > 4096 { return EINVAL; }
+            if !valid_user_range(frame.a1, frame.a2) { return EINVAL; }
+            let mut kpath = alloc::vec![0u8; path_len];
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                frame.a1 as *const u8, kpath.as_mut_ptr(), path_len,
+            )); }
+            crate::rfs::unlink(&kpath) as u64
         }
         _ => ENOSYS,
     }
