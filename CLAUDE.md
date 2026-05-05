@@ -6,21 +6,31 @@ Lythos is a completed x86_64 microkernel written in Rust. All 14 build steps are
 
 ## Build & run
 
+Use the top-level `Makefile` which orchestrates OROS + kernel + disk image in the right order:
+
 ```bash
-# debug build
-cargo build
+# build everything (OROS userspace → rootfs/bin/, kernel, disk.img)
+make
 
-# release build
-cargo build --release
+# run debug kernel under QEMU (with RFS disk)
+make run
 
-# run (debug)
-qemu-system-x86_64 -kernel target/x86_64-lythos/debug/lythos -serial stdio -display none
+# run release kernel
+make run-release
 
-# run (release)
-qemu-system-x86_64 -kernel target/x86_64-lythos/release/lythos -serial stdio -display none
+# run with interrupt/triple-fault tracing
+make debug
 
-# run with interrupt/reset tracing (for debugging triple faults)
-qemu-system-x86_64 -kernel target/x86_64-lythos/debug/lythos -serial stdio -display none -d int,cpu_reset
+# build steps individually
+make oros    # compile OROS and copy lythd/lythdist/lysh to rootfs/bin/
+make kernel  # compile kernel + rebuild disk.img via build.rs
+```
+
+QEMU flags used by the Makefile:
+```
+-serial stdio -display none
+-drive file=disk.img,format=raw,if=none,id=hd0
+-device virtio-blk-pci,drive=hd0
 ```
 
 The target is set by default in `.cargo/config.toml` (`x86_64-lythos.json`). The linker script is `linker.ld`.

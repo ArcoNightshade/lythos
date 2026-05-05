@@ -48,6 +48,12 @@
 /// | 19 | SYS_TASK_KILL   |
 /// | 20 | SYS_BLK_READ    |
 /// | 21 | SYS_BLK_WRITE   |
+/// | 22 | SYS_OPEN        |
+/// | 23 | SYS_READ        |
+/// | 24 | SYS_WRITE       |
+/// | 25 | SYS_CLOSE       |
+/// | 26 | SYS_STAT        |
+/// | 27 | SYS_READDIR     |
 
 use core::arch::global_asm;
 
@@ -110,6 +116,18 @@ pub const SYS_BLK_READ:     u64 = 20;
 /// a1 = sector (u64), a2 = buf_ptr (user VA, *const u8, must be 512 bytes).
 /// Returns 0 on success; ENOSYS if no block device; EINVAL on bad args or I/O error.
 pub const SYS_BLK_WRITE:    u64 = 21;
+/// Open a file. a1=path_ptr, a2=path_len. Returns fd (≥ 0) or error.
+pub const SYS_OPEN:         u64 = 22;
+/// Read from fd. a1=fd, a2=buf_ptr, a3=len. Returns bytes read or error.
+pub const SYS_READ:         u64 = 23;
+/// Write to fd (stub). Returns ENOPERM always for now.
+pub const SYS_WRITE:        u64 = 24;
+/// Close fd. a1=fd. Returns 0 or error.
+pub const SYS_CLOSE:        u64 = 25;
+/// Stat a path. a1=path_ptr, a2=path_len, a3=stat_ptr. Returns 0 or error.
+pub const SYS_STAT:         u64 = 26;
+/// Readdir. a1=path_ptr, a2=path_len, a3=buf_ptr, a4=buf_len. Returns entry count or error.
+pub const SYS_READDIR:      u64 = 27;
 
 // ── Error sentinel ────────────────────────────────────────────────────────────
 
@@ -121,6 +139,10 @@ pub const ENOCAP:  u64 = (-2i64) as u64;
 pub const ENOPERM: u64 = (-3i64) as u64;
 /// Invalid argument (e.g. target task not found, self-grant).
 pub const EINVAL:  u64 = (-4i64) as u64;
+/// No such file or directory.
+pub const ENOENT:  u64 = (-5i64) as u64;
+/// Bad file descriptor.
+pub const EBADF:   u64 = (-6i64) as u64;
 
 // ── MSR addresses ─────────────────────────────────────────────────────────────
 
@@ -837,6 +859,103 @@ pub extern "C" fn syscall_dispatch(frame: &mut SyscallFrame) -> u64 {
             }
             if !crate::virtio_blk::write_sector(sector, &kbuf) { return EINVAL; }
             0
+        }
+        SYS_OPEN => {
+            // a1=path_ptr, a2=path_len
+            let path_len = frame.a2 as usize;
+            if path_len == 0 || path_len > 4096 { return EINVAL; }
+            if !valid_user_range(frame.a1, frame.a2) { return EINVAL; }
+            let mut kpath = alloc::vec![0u8; path_len];
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                frame.a1 as *const u8, kpath.as_mut_ptr(), path_len,
+            )); }
+            let fd = crate::rfs::open(&kpath);
+            fd as u64
+        }
+        SYS_READ => {
+            // a1=fd, a2=buf_ptr, a3=len
+            let len = (frame.a3 as usize).min(1024 * 1024);
+            if len > 0 && !valid_user_range(frame.a2, frame.a3) { return EINVAL; }
+            let mut kbuf = alloc::vec![0u8; len];
+            let n = crate::rfs::read(frame.a1, &mut kbuf);
+            if n < 0 { return n as u64; }
+            if n > 0 {
+                unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                    kbuf.as_ptr(), frame.a2 as *mut u8, n as usize,
+                )); }
+            }
+            n as u64
+        }
+        SYS_WRITE => {
+            ENOPERM
+        }
+        SYS_CLOSE => {
+            // a1=fd
+            let r = crate::rfs::close(frame.a1);
+            r as u64
+        }
+        SYS_STAT => {
+            // a1=path_ptr, a2=path_len, a3=stat_ptr (user, 48 bytes)
+            let path_len = frame.a2 as usize;
+            if path_len == 0 || path_len > 4096 { return EINVAL; }
+            if !valid_user_range(frame.a1, frame.a2) { return EINVAL; }
+            if !valid_user_range(frame.a3, 48) { return EINVAL; }
+            let mut kpath = alloc::vec![0u8; path_len];
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                frame.a1 as *const u8, kpath.as_mut_ptr(), path_len,
+            )); }
+            let mut stat = crate::rfs::Stat::default();
+            if !crate::rfs::stat_path(&kpath, &mut stat) { return ENOENT; }
+            // Serialise Stat into a 48-byte user buffer (all LE):
+            // [0..8]=size [8..12]=flags [12..14]=mode [14..18]=uid [18..22]=gid
+            // [22..26]=nlink [26..34]=mtime [34..42]=ctime [42..48]=_pad
+            let mut buf = [0u8; 48];
+            buf[0..8].copy_from_slice(&stat.size.to_le_bytes());
+            buf[8..12].copy_from_slice(&stat.flags.to_le_bytes());
+            buf[12..14].copy_from_slice(&stat.mode.to_le_bytes());
+            buf[14..18].copy_from_slice(&stat.uid.to_le_bytes());
+            buf[18..22].copy_from_slice(&stat.gid.to_le_bytes());
+            buf[22..26].copy_from_slice(&stat.nlink.to_le_bytes());
+            buf[26..34].copy_from_slice(&stat.mtime.to_le_bytes());
+            buf[34..42].copy_from_slice(&stat.ctime.to_le_bytes());
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                buf.as_ptr(), frame.a3 as *mut u8, 48,
+            )); }
+            0
+        }
+        SYS_READDIR => {
+            // a1=path_ptr, a2=path_len, a3=buf_ptr, a4=buf_len
+            // Each entry written as: ino(4) ft(1) name_len(1) _pad(2) name[256] = 264 bytes.
+            let path_len = frame.a2 as usize;
+            if path_len == 0 || path_len > 4096 { return EINVAL; }
+            if !valid_user_range(frame.a1, frame.a2) { return EINVAL; }
+            let buf_len = frame.a4 as usize;
+            if buf_len > 0 && !valid_user_range(frame.a3, frame.a4) { return EINVAL; }
+            let mut kpath = alloc::vec![0u8; path_len];
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                frame.a1 as *const u8, kpath.as_mut_ptr(), path_len,
+            )); }
+            let entries = match crate::rfs::readdir_path(&kpath) {
+                Some(e) => e,
+                None    => return ENOENT,
+            };
+            const ENTRY_SIZE: usize = 264;
+            let max_entries = buf_len / ENTRY_SIZE;
+            let count = entries.len().min(max_entries);
+            let mut kbuf = alloc::vec![0u8; count * ENTRY_SIZE];
+            for (i, e) in entries.iter().take(count).enumerate() {
+                let off = i * ENTRY_SIZE;
+                kbuf[off..off+4].copy_from_slice(&e.ino.to_le_bytes());
+                kbuf[off+4] = e.file_type;
+                let name_bytes = e.name.as_bytes();
+                let name_len = name_bytes.len().min(255);
+                kbuf[off+5] = name_len as u8;
+                kbuf[off+8..off+8+name_len].copy_from_slice(&name_bytes[..name_len]);
+            }
+            unsafe { with_user_access(|| core::ptr::copy_nonoverlapping(
+                kbuf.as_ptr(), frame.a3 as *mut u8, count * ENTRY_SIZE,
+            )); }
+            count as u64
         }
         _ => ENOSYS,
     }

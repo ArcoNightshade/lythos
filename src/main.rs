@@ -21,6 +21,7 @@ mod idt;
 pub mod ipc;
 pub mod pmm;
 pub mod serial;
+pub mod rfs;
 pub mod syscall;
 pub mod task;
 pub mod tss;
@@ -156,6 +157,11 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
             sects,
             sects / 2048,
         );
+        if rfs::init() {
+            kprintln!("[rfs] mounted");
+        } else {
+            kprintln!("[rfs] no RFS_V1 image on disk (pass -drive file=disk.img,... to QEMU)");
+        }
     } else {
         kprintln!("[virtio-blk] no device found (pass -device virtio-blk-pci to QEMU)");
     }
@@ -355,24 +361,10 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
 
     // ── Locate lythd ELF ────────────────────────────────────────────────
     //
-    // QEMU's a.out-kludge MB1 path does not populate the MB1 modules list,
-    // so lythd cannot be passed via `-initrd`.  Instead `run.sh` uses:
-    //   -device loader,file=lythd,addr=0x400000,force-raw=on
-    // which DMA-writes the raw ELF bytes to physical address 0x400000
-    // (identity-mapped, so phys==virt) before the CPU starts.
-    // pmm::init() already reserved [0x400000, 0x400000+512KiB) as used.
-    let lythd_elf: &[u8] = unsafe {
-        let ptr = pmm::LYTHD_MODULE_ADDR as *const u8;
-        // Sanity-check: verify the ELF magic is present.
-        assert!(
-            *ptr.add(0) == 0x7F && *ptr.add(1) == b'E'
-                && *ptr.add(2) == b'L' && *ptr.add(3) == b'F',
-            "lythd ELF magic not found at {:#x} — \
-             run QEMU with: -device loader,file=lythd,addr={:#x},force-raw=on",
-            pmm::LYTHD_MODULE_ADDR, pmm::LYTHD_MODULE_ADDR,
-        );
-        core::slice::from_raw_parts(ptr, pmm::LYTHD_MODULE_MAX)
-    };
+    // lythd is read from /bin/lythd on the RFS disk image.
+    // Populate rootfs/bin/lythd (via `make oros`) before running QEMU.
+    let lythd_elf = rfs::load_file("/bin/lythd")
+        .expect("lythd: /bin/lythd not found — run `make oros` to populate rootfs/bin/");
 
     // ── lythd bootstrap ───────────────────────────────────────────────────
     //
@@ -429,7 +421,7 @@ pub extern "C" fn kmain(mb_magic: u32, mb_info: u64) -> ! {
     // can read from it during cap inheritance.
     task::set_bootstrap_cap_table(kmain_caps);
 
-    elf::exec(&lythd_elf, &[mem_cap, rollback_cap, boot_cap], &[])
+    elf::exec(lythd_elf.as_slice(), &[mem_cap, rollback_cap, boot_cap], &[])
         .expect("lythd bootstrap: exec failed");
 
     kprintln!("[boot] lythd launched — entering scheduler");

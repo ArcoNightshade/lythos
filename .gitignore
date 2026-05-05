@@ -25,6 +25,7 @@ target/
 /lythos.iso
 /lythos.img
 /isodir/
+/disk.img
 
 **/mutants.out*/
 
