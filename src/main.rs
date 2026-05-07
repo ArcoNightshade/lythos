@@ -719,11 +719,11 @@ fn core_smoke() {
     // All cases are called directly via `syscall_dispatch` (no ring-3 needed).
     // A panic here means the kernel did not reject a bad input gracefully.
     {
-        // Unknown syscall numbers → ENOSYS (21 = SYS_BLK_WRITE is highest implemented;
+        // Unknown syscall numbers → ENOSYS (29 = SYS_UNLINK is highest implemented;
         // 20/21 return ENOSYS when no VirtIO block device is present, which is the
         // case during kernel smoke tests run without a disk image).
         let mut f: syscall::SyscallFrame;
-        for nr in [22u64, 100, 255, u64::MAX] {
+        for nr in [30u64, 100, 255, u64::MAX] {
             f = unsafe { core::mem::zeroed() };
             f.nr = nr;
             assert_eq!(

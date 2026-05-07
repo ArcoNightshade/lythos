@@ -1,8 +1,8 @@
 //! VirtIO legacy block device driver (virtio-blk, PCI transport).
 //!
-//! Implements synchronous (polled) single-sector read/write using a
-//! 3-descriptor chain.  No interrupt handling is required — the driver
-//! spins on the used-ring index until the device posts a completion.
+//! Implements synchronous interrupt-driven single-sector read/write using a
+//! 3-descriptor chain.  The driver submits a request, halts the CPU, and
+//! wakes on the virtio-blk PCI IRQ routed through the I/O APIC.
 //!
 //! ## Hardware interface
 //!
@@ -17,8 +17,8 @@
 //! offset ALIGN(…,4K): used ring        — 4 + 8Q bytes
 //! ```
 //!
-//! The driver supports up to `QUEUE_SIZE_MAX = 128` entries; QEMU's default
-//! is 128.  The virtqueue fits in two contiguous 4 KiB pages.
+//! The driver supports up to `QUEUE_SIZE_MAX = 1024` entries; QEMU 10.x
+//! defaults to 256.  Up to 8 contiguous 4 KiB pages are allocated.
 //!
 //! ## DMA buffers (identity-mapped, phys == virt for RAM < 1 GiB)
 //!
@@ -33,7 +33,62 @@
 //! -device virtio-blk-pci,drive=hd0
 //! ```
 
+use core::arch::global_asm;
 use core::sync::atomic::{self, Ordering};
+
+// ── IRQ vector ────────────────────────────────────────────────────────────────
+
+/// IDT vector for the virtio-blk PCI interrupt.  34 is free (32=timer, 33=TLB).
+pub const VECTOR_VIRTIO_BLK: u8 = 34;
+
+// ── IRQ stub ──────────────────────────────────────────────────────────────────
+//
+// Saves caller-saved registers, calls virtio_blk_irq_handler (reads ISR_STATUS
+// to satisfy the device and sends APIC EOI), then restores and iretq.
+// The handler does nothing else — the submit() poll loop reads the status byte
+// directly and detects completion on the next iteration.
+
+global_asm!(r#"
+.section .text
+.global virtio_blk_isr_stub
+.type   virtio_blk_isr_stub, @function
+virtio_blk_isr_stub:
+    pushq  %rax
+    pushq  %rcx
+    pushq  %rdx
+    pushq  %rsi
+    pushq  %rdi
+    pushq  %r8
+    pushq  %r9
+    pushq  %r10
+    pushq  %r11
+    call   virtio_blk_irq_handler
+    popq   %r11
+    popq   %r10
+    popq   %r9
+    popq   %r8
+    popq   %rdi
+    popq   %rsi
+    popq   %rdx
+    popq   %rcx
+    popq   %rax
+    iretq
+"#, options(att_syntax));
+
+unsafe extern "C" { fn virtio_blk_isr_stub(); }
+
+/// Called from `virtio_blk_isr_stub` on every virtio-blk PCI interrupt.
+///
+/// Reads `ISR_STATUS` (clears the interrupt at the device), then sends EOI
+/// to the Local APIC.  The `submit()` polling loop checks the status byte
+/// independently and acts on completion, so no state needs to be set here.
+#[unsafe(no_mangle)]
+pub extern "C" fn virtio_blk_irq_handler() {
+    if let Some(dev) = dev_ref() {
+        let _ = unsafe { inb(dev.io_base + REG_ISR_STATUS) };
+    }
+    crate::apic::eoi();
+}
 
 // ── PCI IDs ───────────────────────────────────────────────────────────────────
 
@@ -71,16 +126,17 @@ const VIRTIO_BLK_T_OUT: u32 = 1; // write (guest writes sector data into device)
 
 // ── Sizing ────────────────────────────────────────────────────────────────────
 
-/// Maximum virtqueue depth we support.  QEMU's default is 128.
-const QUEUE_SIZE_MAX: usize = 128;
+/// Maximum virtqueue depth we support.  QEMU 10.x default is 256; cap at 1024.
+const QUEUE_SIZE_MAX: usize = 1024;
 
-/// Pages needed for the virtqueue when Q = QUEUE_SIZE_MAX.
+/// Pages needed for the virtqueue when Q = QUEUE_SIZE_MAX = 1024.
 ///
-/// desc table:  16 × 128 = 2048 bytes
-/// avail ring:   4 + 2 × 128 = 260 bytes   (total used in page 0: 2308 bytes)
-/// used ring:   4 + 8 × 128 = 1028 bytes   (starts at page 1, offset 4096)
-/// → 2 pages (8192 bytes allocated, 5124 used)
-const QUEUE_PAGES: usize = 2;
+/// desc table:  16 × 1024 = 16384 bytes  (4 pages)
+/// avail ring:   4 + 2 × 1024 = 2052 bytes  (fits in page 4, ends at offset 18436)
+/// used ring:   starts at next 4 KiB boundary (offset 20480 = 5 pages)
+///              4 + 8 × 1024 = 8196 bytes  (ends at offset 28676)
+/// → 8 pages (32768 bytes) covers any Q ≤ 1024
+const QUEUE_PAGES: usize = 8;
 
 /// Size of a VirtIO block sector in bytes.
 pub const SECTOR_SIZE: usize = 512;
@@ -176,18 +232,6 @@ fn avail_ring_pa(vq: u64, q: u16, slot: u16) -> u64 {
     avail_pa(vq, q) + 4 + slot as u64 * 2
 }
 
-/// Physical address of the used ring base (page-aligned after desc + avail).
-#[inline]
-fn used_pa(vq: u64, q: u16) -> u64 {
-    let after_avail = avail_pa(vq, q) + 4 + q as u64 * 2; // end of avail ring
-    (after_avail + 4095) & !4095                            // align to 4 KiB
-}
-
-/// Physical address of `used.idx`.
-#[inline]
-fn used_idx_pa(vq: u64, q: u16) -> u64 {
-    used_pa(vq, q) + 2
-}
 
 // ── Driver state ──────────────────────────────────────────────────────────────
 
@@ -246,12 +290,8 @@ impl VirtioBlkDev {
     ///
     /// Returns `true` on success (device status byte == 0).
     fn submit(&mut self, sector: u64, write: bool) -> bool {
-        // Disable interrupts for the entire submit + poll cycle.
-        // The APIC timer ISR calls yield_task() which can disturb vCPU state
-        // while QEMU is mid-request; masking it during the brief I/O window
-        // keeps the path clean.  Interrupts are restored before we return.
         let rflags: u64;
-        unsafe { core::arch::asm!("pushfq; pop {0}; cli", out(reg) rflags) };
+        unsafe { core::arch::asm!("pushfq; pop {0}", out(reg) rflags, options(nomem)) };
 
         // ── Build request header at hdr_phys ─────────────────────────────────
         // VirtioBlkReq layout (16 bytes):
@@ -309,44 +349,31 @@ impl VirtioBlkDev {
         unsafe { outw(self.io_base + REG_QUEUE_NOTIFY, 0) };
 
         // ── Poll status byte for completion ───────────────────────────────────
-        //
-        // Polling `status_pa` (hdr_phys + 16) is simpler and more robust than
-        // polling the used-ring idx: it does not depend on queue-size layout
-        // calculations, and QEMU writes it as part of processing the request
-        // regardless of the ring accounting.  We poisoned it with 0xFF above;
-        // any other value means the device finished.
-        //
-        // We still bump last_used so the ring index stays in sync for future
-        // requests (QEMU increments used.idx even though we don't gate on it).
+        // Status byte was poisoned with 0xFF above; any other value = done.
+        // `hlt` yields to QEMU's event loop so AIO completions can fire.
         let expected = self.last_used.wrapping_add(1);
         let status_ptr = status_pa as *const u8;
-        let mut iters: u32 = 0;
+        let deadline = crate::apic::ticks() + 5000; // 5 s timeout
         loop {
             atomic::fence(Ordering::Acquire);
             let s = unsafe { status_ptr.read_volatile() };
             if s != 0xFF { break; }
-            iters += 1;
-            if iters == 50_000_000 {
-                let uid = unsafe {
-                    (used_idx_pa(self.vq_phys, self.q_size) as *const u16).read_volatile()
-                };
-                crate::kprintln!(
-                    "[virtio-blk] poll stall: status={:#x} used.idx={:#x} want={:#x} \
-                     status_pa={:#x} vq={:#x} q={}",
-                    s, uid, expected, status_pa, self.vq_phys, self.q_size,
-                );
-                unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags) };
+            if crate::apic::ticks() >= deadline {
+                crate::kprintln!("[virtio-blk] timeout waiting for sector {}", sector);
+                unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags, options(nomem)) };
                 return false;
             }
-            core::hint::spin_loop();
+            // sti;hlt: enable interrupts so the virtio IRQ can wake us even
+            // when called from syscall context (FMASK clears IF). RFLAGS is
+            // restored on return so the caller's IF state is preserved.
+            unsafe { core::arch::asm!("sti; hlt", options(nomem, nostack)) };
         }
         self.last_used = expected;
 
-        // Clear ISR status to acknowledge the (potentially asserted) IRQ.
+        // Acknowledge any pending virtio-blk IRQ.
         let _ = unsafe { inb(self.io_base + REG_ISR_STATUS) };
 
-        // Restore interrupts.
-        unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags) };
+        unsafe { core::arch::asm!("push {0}; popfq", in(reg) rflags, options(nomem)) };
 
         // ── Check device status byte ──────────────────────────────────────────
         let status = unsafe { (status_pa as *const u8).read_volatile() };
@@ -409,12 +436,6 @@ pub fn init() -> bool {
     }
     let q_size = dev_q_size.min(QUEUE_SIZE_MAX as u16);
 
-    // Tell the device the queue size we will actually use.
-    // Without this write QEMU uses its own default for layout computation,
-    // which may differ from our capped q_size and cause the used-ring
-    // address we poll to mismatch the address the device writes to.
-    unsafe { outw(io + REG_QUEUE_NUM, q_size) };
-
     // Allocate QUEUE_PAGES physically-contiguous 4 KiB frames for the virtqueue.
     // The physical address is also the virtual address (identity map, phys < 1 GiB).
     let vq_phys = match crate::pmm::alloc_frames_contiguous(QUEUE_PAGES) {
@@ -459,6 +480,14 @@ pub fn init() -> bool {
              STATUS_ACKNOWLEDGE | STATUS_DRIVER | STATUS_DRIVER_OK)
     };
 
+    // Verify device accepted the init sequence (FAILED bit = 0x80 must be clear).
+    let dev_status = unsafe { inb(io + REG_DEVICE_STATUS) };
+    if dev_status & 0x80 != 0 {
+        crate::kprintln!("[virtio-blk] device FAILED status={:#x}", dev_status);
+        return false;
+    }
+    crate::kprintln!("[virtio-blk] device status after DRIVER_OK={:#x}", dev_status);
+
     // ── Store global state ────────────────────────────────────────────────────
     unsafe {
         *DEV.0.get() = Some(VirtioBlkDev {
@@ -472,6 +501,20 @@ pub fn init() -> bool {
             last_used: 0,
         });
     }
+
+    // ── Wire the PCI interrupt through the I/O APIC ───────────────────────────
+    // PCI IRQs are active-low level-triggered.  The IRQ line from PCI config
+    // space is the GSI; map it to our vector so QEMU can wake the CPU via the
+    // virtio-blk interrupt instead of waiting for the 1 ms APIC timer tick.
+    crate::idt::register_irq(
+        VECTOR_VIRTIO_BLK,
+        virtio_blk_isr_stub as *const () as u64,
+    );
+    crate::ioapic::map_irq(
+        pci.irq_line,
+        VECTOR_VIRTIO_BLK,
+        crate::ioapic::IRQ_LEVEL | crate::ioapic::IRQ_ACTIVE_LO,
+    );
 
     true
 }

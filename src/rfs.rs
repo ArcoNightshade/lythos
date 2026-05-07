@@ -855,15 +855,22 @@ pub fn read(fd: u64, buf: &mut [u8]) -> i64 {
     if !is_mounted() { return ENOMNT; }
     if fd as usize >= MAX_FDS { return EBADF; }
 
-    let mut st = STATE.lock();
-    let of = match st.fds[fd as usize].as_mut() {
-        Some(f) => f,
-        None    => return EBADF,
+    // Copy inode+offset out before releasing the lock; disk I/O via hlt
+    // requires interrupts enabled, but SpinLock holds cli for its duration.
+    let (inode, offset) = {
+        let mut st = STATE.lock();
+        match st.fds[fd as usize].as_mut() {
+            Some(f) => (f.inode, f.offset),
+            None    => return EBADF,
+        }
     };
-    let inode  = of.inode;
-    let offset = of.offset;
-    let n      = read_file_data(&inode, offset, buf);
-    of.offset += n as u64;
+
+    let n = read_file_data(&inode, offset, buf);
+
+    let mut st = STATE.lock();
+    if let Some(Some(of)) = st.fds.get_mut(fd as usize) {
+        of.offset += n as u64;
+    }
     n as i64
 }
 

@@ -44,8 +44,23 @@
 
 ## lythd / userspace
 
-- [ ] lythdist service manifest format — define how services declare deps, caps, restart policy
+- [ ] lythdist service manifest format — line-based text, stored as `/etc/svc/<name>.svc` on RFS
+  - Fields: `name=`, `path=`, `restart=` (never|on-failure[:N]|always), `cap=` (memory|rollback|ipc:<rights>), `dep=`
+  - lythd reads `/etc/svc/` at boot, parses manifests, toposorts by deps, spawns in order
+  - `cap=ipc` → lythd creates fresh endpoint and passes handle; `cap=memory:<rights>` → sys_cap_grant; `cap=rollback` → grant rollback cap
+  - Replaces hardcoded `managed` array in lythd with manifest-driven `Vec<ManagedSvc>`
 - [ ] lythd: spawn lythdist and lysh automatically after BootInfo recv (currently manual in test ELFs)
+
+## Text editor (rkilo)
+
+- [ ] `rkilo [path]` — kilo-style screen editor ported to OROS (no termios, no POSIX)
+  - Input via `SYS_SERIAL_READ` (14) — already raw, no `tcsetattr` needed
+  - Output via `SYS_LOG` / `SYS_WRITE`; ANSI VT100 escapes work through QEMU `-serial stdio`
+  - Terminal size: ANSI CPR trick (`\x1b[999C\x1b[999B\x1b[6n`) or fallback hardcode 80×24
+  - File I/O via VFS: `SYS_OPEN`/`SYS_READ`/`SYS_WRITE`/`SYS_CREATE`/`SYS_CLOSE`
+  - Key bindings: `Ctrl-S` save, `Ctrl-Q` quit, `Ctrl-F` find, arrow keys / PgUp / PgDn
+  - No syntax highlighting required for v1
+  - Primary use case: editing `/etc/svc/*.svc` manifests on a live system
 
 ## Display / GUI
 

@@ -22,6 +22,7 @@ oros:
 	cp $(OROS_OUT)/lythd     $(ROOTFS_BIN)/lythd
 	cp $(OROS_OUT)/lythdist  $(ROOTFS_BIN)/lythdist
 	cp $(OROS_OUT)/lysh      $(ROOTFS_BIN)/lysh
+	cp $(OROS_OUT)/rutils    $(ROOTFS_BIN)/rutils
 
 ## Build the kernel (also runs build.rs → mkrfs → disk.img)
 kernel:
